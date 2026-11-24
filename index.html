@@ -1,0 +1,1125 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>LockIn</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@700;800&family=DM+Mono:wght@400;500&family=Hanken+Grotesk:wght@400;500;600;700&display=swap">
+<style>
+/* Layout: one column shell, a scrollable tab strip, one view at a time.
+   Color carries meaning: the UI is ink on paper, each life area owns one hue, red only marks overload.
+   Type: Big Shoulders Display for scoreboard numerals and headings, Hanken Grotesk for reading, DM Mono for times and labels. */
+:root{
+  --bg:#EDF0F5;--surface:#FFFFFF;--surface2:#E2E7EF;--fg:#0F1B2D;--muted:#566377;--line:#CAD2DE;--alert:#D92D20;--alert-bg:#FCE9E7;
+  --c-academics:#2F6FD6;--c-career:#6B4FE0;--c-skills:#7C9A10;--c-money:#1F9D55;--c-mind:#0E9AA0;--c-fitness:#E8820C;--c-social:#B13FD0;--c-love:#D6336C;
+  --f-display:'Big Shoulders Display','Arial Narrow',Impact,sans-serif;
+  --f-body:'Hanken Grotesk',system-ui,-apple-system,'Segoe UI',sans-serif;
+  --f-mono:'DM Mono',ui-monospace,Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0A111B;--surface:#121C29;--surface2:#1B2838;--fg:#E7EDF5;--muted:#93A2B6;--line:#27384D;--alert:#FF6B5E;--alert-bg:#3A1B18;
+    --c-academics:#78A6FF;--c-career:#A794FF;--c-skills:#B9D84F;--c-money:#52D58A;--c-mind:#4FD3D8;--c-fitness:#FFA84A;--c-social:#D98BF0;--c-love:#FF86AC;
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0A111B;--surface:#121C29;--surface2:#1B2838;--fg:#E7EDF5;--muted:#93A2B6;--line:#27384D;--alert:#FF6B5E;--alert-bg:#3A1B18;
+  --c-academics:#78A6FF;--c-career:#A794FF;--c-skills:#B9D84F;--c-money:#52D58A;--c-mind:#4FD3D8;--c-fitness:#FFA84A;--c-social:#D98BF0;--c-love:#FF86AC;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.5 var(--f-body);-webkit-font-smoothing:antialiased;
+  padding-block:14px 56px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+button,input,select,textarea{font:inherit;color:inherit}
+h1,h2,h3,p{margin:0}
+:focus-visible{outline:2px solid var(--fg);outline-offset:2px}
+.shell{max-width:1060px;margin:0 auto;display:flex;flex-direction:column;gap:16px;min-width:0}
+.top{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.brand{display:flex;align-items:center;gap:10px;font:800 32px/1 var(--f-display);letter-spacing:.05em;text-transform:uppercase}
+.brand svg{width:26px;height:26px}
+.top-r{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.tabs{display:flex;gap:2px;overflow-x:auto;border-bottom:1px solid var(--line);scrollbar-width:none}
+.tabs::-webkit-scrollbar{display:none}
+.tab{appearance:none;background:none;border:0;border-bottom:3px solid transparent;padding:10px 13px;cursor:pointer;white-space:nowrap;
+  font:600 12px var(--f-mono);letter-spacing:.09em;text-transform:uppercase;color:var(--muted)}
+.tab[aria-selected="true"]{color:var(--fg);border-bottom-color:var(--fg)}
+main{display:flex;flex-direction:column;gap:16px;min-width:0;outline:none}
+.cols{display:grid;gap:16px;grid-template-columns:repeat(auto-fit,minmax(min(100%,310px),1fr))}
+.split{display:grid;gap:16px;grid-template-columns:minmax(0,1.15fr) minmax(0,.85fr)}
+@media (max-width:760px){.split{grid-template-columns:minmax(0,1fr)}}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:16px;min-width:0}
+.card.flat{background:transparent}
+.stack{display:flex;flex-direction:column;gap:12px;min-width:0}
+.row{display:flex;align-items:center;gap:10px;flex-wrap:wrap;min-width:0}
+.between{justify-content:space-between}
+.grow{flex:1 1 0;min-width:0}
+.sec{font:800 22px/1.1 var(--f-display);letter-spacing:.05em;text-transform:uppercase}
+.lbl{font:500 11px var(--f-mono);letter-spacing:.09em;text-transform:uppercase;color:var(--muted)}
+.muted{color:var(--muted)}
+.small{font-size:13px}
+.mono{font-family:var(--f-mono);font-variant-numeric:tabular-nums}
+.num{font:800 64px/.9 var(--f-display);letter-spacing:.01em;font-variant-numeric:tabular-nums}
+.num.sm{font-size:34px}
+.btn{appearance:none;border:1.5px solid var(--fg);background:var(--fg);color:var(--bg);padding:9px 16px;border-radius:999px;font-weight:600;cursor:pointer}
+.btn.ghost{background:transparent;color:var(--fg)}
+.btn.alert{background:var(--alert);border-color:var(--alert);color:#fff}
+.btn.sm{padding:5px 12px;font-size:13px}
+.btn[disabled]{opacity:.38;cursor:not-allowed}
+.pills{display:flex;flex-wrap:wrap;gap:6px}
+.pill{appearance:none;border:1.5px solid var(--line);background:var(--surface);padding:6px 12px;border-radius:999px;cursor:pointer;font-weight:600;font-size:13px}
+.pill[aria-pressed="true"]{background:var(--fg);color:var(--bg);border-color:var(--fg)}
+.field{display:flex;flex-direction:column;gap:6px;min-width:0}
+.in{width:100%;min-width:0;background:var(--bg);border:1.5px solid var(--line);border-radius:10px;padding:9px 11px}
+.in:focus-visible{outline-offset:0;border-color:var(--fg)}
+.fgrid{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(min(100%,150px),1fr))}
+.err{color:var(--alert);font-size:13px;font-weight:600}
+.tag{display:inline-flex;align-items:center;gap:6px;font:500 11px var(--f-mono);letter-spacing:.05em;text-transform:uppercase;padding:3px 9px;border-radius:999px;border:1px solid var(--line);background:var(--surface);white-space:nowrap}
+.dot{width:9px;height:9px;border-radius:50%;background:var(--c,var(--muted));flex:none}
+.sev{font:600 11px var(--f-mono);letter-spacing:.07em;text-transform:uppercase;padding:2px 8px;border-radius:5px;border:1.5px solid var(--alert);color:var(--alert);flex:none}
+.sev.block{background:var(--alert);color:#fff}
+.sev.conflict{background:var(--fg);border-color:var(--fg);color:var(--bg)}
+.banner{display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap;padding:12px 14px;border-radius:12px;border:1.5px solid var(--alert);background:var(--alert-bg)}
+.banner.calm{border-color:var(--line);background:var(--surface)}
+.hrow{display:grid;grid-template-columns:auto 76px minmax(0,1fr) auto;gap:10px;align-items:center;padding:10px 0;border-bottom:1px solid var(--line)}
+.hrow:last-child{border-bottom:0}
+.hrow .time{font:500 12px var(--f-mono);color:var(--muted)}
+.hrow .ttl{font-weight:600;overflow-wrap:anywhere}
+.hrow.done .ttl{text-decoration:line-through;color:var(--muted)}
+.chk{appearance:none;width:26px;height:26px;border:2px solid var(--fg);border-radius:8px;background:transparent;cursor:pointer;position:relative;padding:0}
+.chk[aria-checked="true"]{background:var(--fg)}
+.chk[aria-checked="true"]::after{content:"";position:absolute;left:7px;top:2px;width:7px;height:13px;border:solid var(--bg);border-width:0 3px 3px 0;transform:rotate(45deg)}
+@media (max-width:520px){.hrow{grid-template-columns:auto minmax(0,1fr) auto}.hrow .lead{grid-row:1/3}.hrow .mid{grid-column:2;grid-row:1}.hrow .time{grid-column:2;grid-row:2}.hrow .acts{grid-row:1/3;grid-column:3}}
+.wheel{width:100%;height:auto;max-width:420px;display:block;margin:0 auto}
+.wheel .ax{stroke:var(--line);stroke-width:1;fill:none}
+.wheel .pc{fill:color-mix(in srgb,var(--fg) 13%,transparent);stroke:var(--fg);stroke-width:2.2}
+.wheel .pt{fill:none;stroke:var(--muted);stroke-width:1.6;stroke-dasharray:4 4}
+.wheel text{fill:var(--fg);font:500 11px var(--f-mono);letter-spacing:.04em;text-transform:uppercase}
+.ring{width:132px;height:132px;flex:none}
+.ring .track{fill:none;stroke:var(--surface2);stroke-width:10}
+.ring .arc{fill:none;stroke:var(--fg);stroke-width:10;stroke-linecap:round}
+.ring text{fill:var(--fg);font:800 34px var(--f-display)}
+.legend{display:flex;flex-wrap:wrap;gap:14px;justify-content:center}
+.key{display:flex;align-items:center;gap:6px;font:500 11px var(--f-mono);color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
+.key i{display:block;width:18px;height:0;border-top:2px solid var(--fg)}
+.key i.t{border-top:2px dashed var(--muted)}
+.strip{position:relative;height:46px;background:var(--surface2);border-radius:8px;overflow:hidden}
+.strip .zone{position:absolute;top:0;bottom:0;background:repeating-linear-gradient(135deg,transparent 0 5px,color-mix(in srgb,var(--fg) 20%,transparent) 5px 6px)}
+.strip .sb{position:absolute;top:7px;bottom:7px;min-width:3px;border-radius:4px;background:var(--c)}
+.ticks{position:relative;height:18px;margin-top:4px}
+.ticks span{position:absolute;transform:translateX(-50%);font:500 10px var(--f-mono);color:var(--muted)}
+.meter{position:relative;height:14px;border-radius:7px;background:var(--surface2);overflow:hidden}
+.meter .fill{position:absolute;left:0;top:0;bottom:0;background:var(--fg)}
+.meter .over{position:absolute;top:0;bottom:0;background:repeating-linear-gradient(135deg,var(--alert) 0 6px,transparent 6px 9px)}
+.meter .cap{position:absolute;top:0;bottom:0;width:2px;background:var(--bg);box-shadow:0 0 0 1px var(--fg)}
+.days{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px}
+.daybtn{appearance:none;border:1.5px solid var(--line);background:var(--surface);border-radius:12px;padding:8px 2px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:4px;min-width:0}
+.daybtn[aria-pressed="true"]{border-color:var(--fg);box-shadow:inset 0 0 0 1px var(--fg)}
+.daybtn b{font:600 11px var(--f-mono);letter-spacing:.05em;text-transform:uppercase}
+.daybtn .ld{font:500 11px var(--f-mono);color:var(--muted)}
+.daybtn .bar{width:70%;height:5px;border-radius:3px;background:var(--surface2);overflow:hidden;position:relative}
+.daybtn .bar i{position:absolute;left:0;top:0;bottom:0;background:var(--fg)}
+.daybtn.over .bar i{background:repeating-linear-gradient(135deg,var(--alert) 0 3px,transparent 3px 5px)}
+.daybtn.today b::after{content:"";display:inline-block;width:5px;height:5px;border-radius:50%;background:var(--fg);margin-left:4px;vertical-align:middle}
+.acard{display:flex;flex-direction:column;gap:12px}
+.acard h3{font:800 22px/1 var(--f-display);letter-spacing:.04em;text-transform:uppercase}
+input[type=range]{width:100%;accent-color:var(--fg)}
+.barrow{display:grid;grid-template-columns:minmax(0,120px) minmax(0,1fr) 46px;gap:10px;align-items:center}
+.barrow .lab{display:flex;align-items:center;gap:7px;font-size:13px;font-weight:600;min-width:0}
+.btrack{height:10px;border-radius:5px;background:var(--surface2);overflow:hidden}
+.btrack i{display:block;height:100%;background:var(--c);border-radius:5px}
+.chat{display:flex;flex-direction:column;gap:10px}
+.msg{max-width:90%;padding:10px 13px;border-radius:14px;background:var(--surface2);overflow-wrap:anywhere}
+.msg.me{align-self:flex-end;background:var(--fg);color:var(--bg)}
+.msg.safe{border:1.5px solid var(--fg);background:var(--surface)}
+.tbl-wrap{overflow-x:auto;border:1px solid var(--line);border-radius:12px;background:var(--surface)}
+table{border-collapse:collapse;width:100%;min-width:620px;font-size:13px}
+th,td{text-align:left;padding:9px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font:500 11px var(--f-mono);letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+tr:last-child td{border-bottom:0}
+.cur{background:color-mix(in srgb,var(--fg) 7%,transparent)}
+.note{display:grid;grid-template-columns:64px minmax(0,1fr);gap:10px;padding:10px 0;border-bottom:1px solid var(--line)}
+.note:last-child{border-bottom:0}
+.note .t{font:500 12px var(--f-mono);color:var(--muted);padding-top:2px}
+.note.future{opacity:.5}
+.tone{display:flex;flex-direction:column;gap:8px;padding:14px;border:1px solid var(--line);border-radius:12px;background:var(--surface)}
+.tone.cur{border-color:var(--fg)}
+.tone p{font-size:14px}
+.opt{appearance:none;text-align:left;border:1.5px solid var(--line);background:var(--surface);border-radius:14px;padding:14px;cursor:pointer;display:flex;flex-direction:column;gap:2px}
+.opt[aria-pressed="true"]{border-color:var(--fg);box-shadow:inset 0 0 0 1px var(--fg)}
+.opt b{font:800 26px/1 var(--f-display);letter-spacing:.04em}
+.overlay{position:fixed;inset:0;z-index:50;background:rgba(6,10,17,.62);display:flex;align-items:center;justify-content:center;overflow:auto;
+  padding:max(16px,env(safe-area-inset-top,0px)) max(16px,env(safe-area-inset-right,0px)) max(16px,env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px))}
+.modal{background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:20px;width:100%;max-width:640px;max-height:100%;overflow:auto;display:flex;flex-direction:column;gap:14px}
+.modal h2{font:800 28px/1.05 var(--f-display);letter-spacing:.04em;text-transform:uppercase}
+.issue{display:flex;gap:10px;align-items:flex-start;padding:10px 0;border-bottom:1px solid var(--line)}
+.issue:last-child{border-bottom:0}
+.issue p{min-width:0;overflow-wrap:anywhere}
+.fix{display:flex;gap:10px;align-items:center;justify-content:space-between;padding:10px 12px;border:1.5px solid var(--line);border-radius:12px}
+.fix div{min-width:0}
+.toasts{position:fixed;left:0;right:0;bottom:0;z-index:60;display:flex;flex-direction:column;align-items:center;gap:8px;pointer-events:none;
+  padding:0 max(16px,env(safe-area-inset-right,0px)) max(16px,env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px))}
+.toast{pointer-events:auto;background:var(--fg);color:var(--bg);padding:10px 14px;border-radius:12px;max-width:440px;box-shadow:0 6px 24px rgba(0,0,0,.28);font-size:14px}
+.toast b{font-weight:700}
+.empty{padding:18px;border:1.5px dashed var(--line);border-radius:12px;color:var(--muted);text-align:center}
+.hero{font:800 clamp(38px,7vw,64px)/.95 var(--f-display);letter-spacing:.02em;text-transform:uppercase;text-wrap:balance}
+.tag.support{background:var(--fg);color:var(--bg);border-color:var(--fg)}
+.hrow .mid{min-width:0}
+.divider{height:1px;background:var(--line);border:0;margin:0}
+@media (prefers-reduced-motion:no-preference){.toast{animation:rise .22s ease-out}@keyframes rise{from{transform:translateY(8px);opacity:0}to{transform:none;opacity:1}}}
+</style>
+</head>
+<body>
+<div class="shell">
+  <header class="top">
+    <div class="brand">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="10" width="16" height="11" rx="2.5"></rect><path d="M8 10V7a4 4 0 0 1 8 0v3"></path><path d="M12 14.5v3"></path></svg>
+      LockIn
+    </div>
+    <div class="top-r">
+      <span class="tag" id="modeTag"></span>
+      <button class="btn ghost sm" type="button" data-act="tab" data-tab="safety">Age mode and limits</button>
+    </div>
+  </header>
+  <nav class="tabs" id="tabs" role="tablist" aria-label="Sections"></nav>
+  <main id="view" tabindex="-1"></main>
+</div>
+<div class="overlay" id="overlay" hidden></div>
+<div class="toasts" id="toasts" aria-live="polite"></div>
+<script>
+'use strict';
+/* ---------- Static data: areas, age brackets, limits, modes, starters ---------- */
+const AREAS=[
+  {id:'academics',name:'Academics',short:'Study',desc:'Classes, exams, homework, and learning what you need.'},
+  {id:'career',name:'Career',short:'Career',desc:'Direction, experience, and moving toward work you want.'},
+  {id:'skills',name:'Skills & Hobbies',short:'Skills',desc:'Craft, music, code, languages, anything you practice.'},
+  {id:'money',name:'Money',short:'Money',desc:'Earning, saving, and knowing where it goes.'},
+  {id:'mind',name:'Mind & Rest',short:'Rest',desc:'Sleep, stress, breaks, and recovery.'},
+  {id:'fitness',name:'Fitness',short:'Fitness',desc:'Movement, strength, and energy.'},
+  {id:'social',name:'Social',short:'Social',desc:'Friends, community, and time with people.'},
+  {id:'love',name:'Love Life',short:'Love',desc:'Dating, partners, and the time you give them.'}
+];
+const LOVE={
+  kid:{name:'Family & Kindness',short:'Family',desc:'Time with family and being kind to the people around you.'},
+  teen:{name:'Relationships & Respect',short:'Bonds',desc:'Healthy friendships and family, honesty, and boundaries.'},
+  young:{name:'Love Life',short:'Love',desc:'Dating, partners, and the time you give them.'},
+  adult:{name:'Love Life',short:'Love',desc:'Partner, dates, and the quality of the time you share.'}
+};
+const BRACKETS={
+  kid:{id:'kid',label:'10–13',title:'Middle school',min:10,max:13},
+  teen:{id:'teen',label:'14–17',title:'High school',min:14,max:17},
+  young:{id:'young',label:'18–24',title:'College and early career',min:18,max:24},
+  adult:{id:'adult',label:'25+',title:'Adult',min:25,max:110}
+};
+const ALL=[0,1,2,3,4,5,6],WK=[1,2,3,4,5];
+const DAYN=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+const DAYF=['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+const W={1:.5,2:1,3:1.5};
+const INTN={1:'Light',2:'Steady',3:'Hard'};
+/* cap: daily load (hours x effort). maxBlock: longest focus block in minutes. exMin: exercise minutes per day.
+   sleepStart/sleepEnd: protected window in minutes from midnight. override: severities the person may push through. */
+const LIMITS={
+  kid:{label:'10–13',cap:5,maxBlock:40,exMin:60,hardMin:60,hardCount:2,sleepStart:1260,sleepEnd:390,sleepHrs:9,strictSleep:true,override:[],overrideDaily:0,sprints:1,
+    rem:{lead:15,atStart:true,after:true,onlyHard:false,morning:450,evening:1170,text:'Often: before, at the start, and after each habit'}},
+  teen:{label:'14–17',cap:7,maxBlock:75,exMin:90,hardMin:150,hardCount:3,sleepStart:1350,sleepEnd:390,sleepHrs:8,strictSleep:true,override:['warn'],overrideDaily:1,sprints:1,
+    rem:{lead:10,atStart:true,after:false,onlyHard:false,morning:420,evening:1230,text:'Before and at the start of each habit'}},
+  young:{label:'18–24',cap:9,maxBlock:100,exMin:120,hardMin:240,hardCount:4,sleepStart:1410,sleepEnd:390,sleepHrs:7,strictSleep:false,override:['warn','block'],overrideDaily:99,sprints:2,
+    rem:{lead:10,atStart:false,after:false,onlyHard:false,morning:480,evening:1290,text:'One heads-up before each habit'}},
+  adult:{label:'25+',cap:9,maxBlock:120,exMin:120,hardMin:240,hardCount:4,sleepStart:1410,sleepEnd:360,sleepHrs:7,strictSleep:false,override:['warn','block'],overrideDaily:99,sprints:2,
+    rem:{lead:5,atStart:false,after:false,onlyHard:true,morning:420,evening:1260,text:'Morning brief, then a nudge only before hard blocks'}}
+};
+const MODES=[
+  {id:'coast',name:'Coast',per:1,blurb:'Keep it alive. About one session a week.'},
+  {id:'maintain',name:'Maintain',per:3,blurb:'Steady. About three sessions a week.'},
+  {id:'build',name:'Build',per:5,blurb:'Actively improving. About five a week.'},
+  {id:'sprint',name:'Sprint',per:7,blurb:'A short push toward a deadline. Daily, and capped in number.'}
+];
+const PERSONAS=[
+  {id:'socialfit',label:'Social and fit, behind on school',
+    cur:{academics:2,career:2,skills:3,money:3,mind:3,fitness:5,social:5,love:4},
+    tgt:{academics:5,career:4,skills:3,money:4,mind:4,fitness:5,social:5,love:4},
+    mode:{academics:'build',career:'build',skills:'maintain',money:'maintain',mind:'maintain',fitness:'maintain',social:'maintain',love:'maintain'}},
+  {id:'studious',label:'Studious, low on social and fitness',
+    cur:{academics:5,career:4,skills:4,money:3,mind:2,fitness:2,social:2,love:3},
+    tgt:{academics:5,career:4,skills:4,money:3,mind:4,fitness:4,social:4,love:3},
+    mode:{academics:'maintain',career:'maintain',skills:'maintain',money:'maintain',mind:'build',fitness:'build',social:'build',love:'maintain'}},
+  {id:'hustle',label:'Hustling and running on empty',
+    cur:{academics:4,career:5,skills:3,money:4,mind:1,fitness:2,social:2,love:2},
+    tgt:{academics:4,career:5,skills:3,money:5,mind:4,fitness:4,social:3,love:3},
+    mode:{academics:'maintain',career:'sprint',skills:'coast',money:'build',mind:'build',fitness:'build',social:'maintain',love:'maintain'}}
+];
+/* [title, area, start, minutes, effort 1-3, days] */
+const STARTERS={
+  kid:[['Homework','academics','16:00',40,2,WK],['Practice or play outside','fitness','17:00',45,2,[1,2,3,4,5,6]],['Free play with friends','social','15:00',45,1,[0,6]],
+    ['Family dinner chat','love','18:15',30,1,ALL],['Read for fun','skills','19:30',20,1,ALL],['Wind down, no screens','mind','20:00',30,1,ALL],
+    ['Piggy bank check','money','19:00',10,1,[0]],['Look up a job that sounds fun','career','16:40',20,1,[3]]],
+  teen:[['Homework','academics','16:30',60,2,WK],['Workout or practice','fitness','17:45',60,3,[1,3,5]],['Friends or club time','social','19:30',60,1,[2,4,6]],
+    ['Family dinner and check-in','love','18:50',30,1,ALL],['Practice a skill','skills','20:30',30,2,[0,1,2,3,4]],['Track spending','money','19:45',10,1,[0]],
+    ['Research one career','career','15:30',20,1,[2]],['Wind down, no screens','mind','21:30',30,1,ALL]],
+  young:[['Deep study session','academics','09:00',90,3,WK],['Gym','fitness','17:30',60,3,[1,3,5]],['Out with friends','social','19:30',120,1,[5]],
+    ['Quality time with a partner','love','19:00',90,1,[6]],['Applications and networking','career','14:00',45,2,[2,4]],['Budget check','money','20:00',15,1,[0]],
+    ['Side project','skills','20:30',60,2,[1,2,3,4]],['Reset and wind down','mind','22:30',20,1,ALL]],
+  adult:[['Deep work block','career','09:00',90,3,WK],['Training','fitness','06:30',50,3,[1,3,5]],['Lunch walk','mind','12:30',25,1,WK],
+    ['Learn something','skills','20:00',40,2,[1,2,3,4]],['Time with partner','love','19:00',60,1,[0,1,2,3,4]],['Friends or community','social','19:30',90,1,[5,6]],
+    ['Budget and investing review','money','20:30',20,1,[0]],['Career outreach','career','17:30',30,2,[2,4]],['Wind down','mind','22:30',30,1,ALL]]
+};
+const QUICKWINS=['Finished something I was avoiding','Kept my streak going','Tried something new','Helped someone'];
+</script>
+<script>
+'use strict';
+/* ---------- Helpers, state, persistence ---------- */
+const KEY='lockin.v1';
+const pad=n=>String(n).padStart(2,'0');
+const r1=x=>Math.round(x*10)/10;
+const fmt=t=>{let h=Math.floor(t/60);const m=t%60,ap=h>=12?'PM':'AM';h=h%12||12;return h+':'+pad(m)+' '+ap};
+const hhmm=t=>pad(Math.floor(t/60))+':'+pad(t%60);
+const parseHM=s=>{const p=String(s).split(':');return(+p[0])*60+(+p[1]||0)};
+const durTxt=m=>m>=60?Math.floor(m/60)+'h'+(m%60?' '+(m%60)+'m':''):m+'m';
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const uid=()=>Math.random().toString(36).slice(2,9);
+const dkey=d=>d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());
+const daysAgo=i=>{const d=new Date();d.setDate(d.getDate()-i);return d};
+
+let state=null;
+function freshState(){
+  const areas={},ra={};
+  AREAS.forEach(a=>{areas[a.id]={cur:3,tgt:4,mode:'maintain'};ra[a.id]=true});
+  return{v:1,profile:null,tab:'today',areas,habits:[],wins:[],done:{},demoDone:{},example:false,overrides:{},rem:{on:true,digest:true,areas:ra}};
+}
+function loadState(){try{const s=localStorage.getItem(KEY);if(s){const o=JSON.parse(s);if(o&&o.v===1)return o}}catch(e){}return null}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(state))}catch(e){}}
+
+const bk=()=>state&&state.profile?state.profile.bracket:'teen';
+const Lim=()=>LIMITS[bk()];
+const aObj=id=>AREAS.find(a=>a.id===id);
+const aName=id=>id==='love'?LOVE[bk()].name:aObj(id).name;
+const aShort=id=>id==='love'?LOVE[bk()].short:aObj(id).short;
+const aDesc=id=>id==='love'?LOVE[bk()].desc:aObj(id).desc;
+const aCol=id=>'var(--c-'+id+')';
+
+/* ---------- Plan math ---------- */
+const dayHabits=(habits,d)=>habits.filter(h=>h.days.includes(d)).sort((a,b)=>a.start-b.start);
+const loadOf=list=>list.reduce((s,h)=>s+h.dur/60*W[h.int],0);
+function sleepOverlap(h,L){
+  const s=h.start,e=h.start+h.dur;
+  const a=Math.max(0,Math.min(e,L.sleepEnd)-s);
+  const b=Math.max(0,e-Math.max(s,L.sleepStart));
+  return a+b;
+}
+const ptsOf=h=>Math.max(1,Math.round(h.dur/10*W[h.int]));
+function isDone(k,id){return !!((state.done[k]&&state.done[k][id])||(state.demoDone[k]&&state.demoDone[k][id]))}
+
+function weekStats(id){
+  let done=0;
+  for(let i=0;i<7;i++){
+    const d=daysAgo(i),k=dkey(d),wd=d.getDay();
+    state.habits.forEach(h=>{if(h.area===id&&h.days.includes(wd)&&isDone(k,h.id))done++});
+  }
+  const since=Date.now()-7*864e5;
+  state.wins.forEach(w=>{if(w.area===id&&w.ts>=since)done++});
+  const target=MODES.find(m=>m.id===state.areas[id].mode).per;
+  return{done,target,pct:Math.min(1,done/target)};
+}
+function areaStatus(id){
+  const a=state.areas[id],gap=a.tgt-a.cur,w=weekStats(id);
+  if(gap>=2||(gap>=1&&w.pct<.4))return'support';
+  if(a.cur>=4&&a.cur>=a.tgt)return'strong';
+  return'steady';
+}
+const STATUS_TXT={support:'Needs support',strong:'Strong. Protect it',steady:'On track'};
+function weekPoints(){
+  let p=0;
+  for(let i=0;i<7;i++){
+    const d=daysAgo(i),k=dkey(d),wd=d.getDay();
+    state.habits.forEach(h=>{if(h.days.includes(wd)&&isDone(k,h.id))p+=ptsOf(h)});
+  }
+  const since=Date.now()-7*864e5;
+  state.wins.forEach(w=>{if(w.ts>=since)p+=w.pts});
+  return p;
+}
+function streak(){
+  let n=0;
+  for(let i=0;i<60;i++){
+    const d=daysAgo(i),list=dayHabits(state.habits,d.getDay());
+    if(!list.length)continue;
+    const k=dkey(d),dn=list.filter(h=>isDone(k,h.id)).length;
+    if(dn/list.length>=.7)n++;else if(i>0)break;
+  }
+  return n;
+}
+const winPts=id=>10+(areaStatus(id)==='support'?5:0);
+
+/* ---------- Seeds ---------- */
+function starterHabits(b){return STARTERS[b].map(r=>({id:uid(),title:r[0],area:r[1],start:parseHM(r[2]),dur:r[3],int:r[4],days:[...r[5]]}))}
+function seedDemo(){
+  state.demoDone={};
+  for(let i=1;i<=6;i++){
+    const d=daysAgo(i),m={};
+    dayHabits(state.habits,d.getDay()).forEach((h,j)=>{if(((i*7+j*3)%10)<7)m[h.id]=true});
+    state.demoDone[dkey(d)]=m;
+  }
+  const ex=[['fitness','Hit three workouts this week',1],['academics','Finished the reading ahead of schedule',2],['social','Organized a hangout',3],['mind','Went to bed on time five nights',4],['money','Put money aside this week',5]];
+  state.wins=state.wins.filter(w=>!w.example).concat(ex.map(e=>{const t=Date.now()-e[2]*864e5;return{id:uid(),ts:t,day:dkey(new Date(t)),area:e[0],text:e[1],pts:10,example:true}}));
+  state.example=true;
+}
+
+/* ---------- Overload guard ---------- */
+function evaluate(list0,b){
+  const L=LIMITS[b],issues=[],load=loadOf(list0);
+  const list=[...list0].sort((x,y)=>x.start-y.start);
+  for(let i=0;i<list.length;i++)for(let j=i+1;j<list.length;j++){
+    const a=list[i],c=list[j];
+    if(a.start<c.start+c.dur&&c.start<a.start+a.dur)issues.push({code:'OVERLAP',sev:'conflict',ids:[a.id,c.id],msg:`<b>${esc(a.title)}</b> (${fmt(a.start)} to ${fmt(a.start+a.dur)}) overlaps <b>${esc(c.title)}</b> (${fmt(c.start)} to ${fmt(c.start+c.dur)}). You can't be in both places.`});
+  }
+  if(load>L.cap)issues.push({code:'LOAD',val:load,sev:load>L.cap*1.25?'block':'warn',msg:`Day load is <b>${r1(load)}</b> against a limit of <b>${L.cap}</b> for ages ${L.label}. Load is hours times effort: light 0.5, steady 1, hard 1.5 per hour.`});
+  list.forEach(h=>{
+    if(h.int>=2&&h.area!=='fitness'&&h.area!=='mind'&&h.dur>L.maxBlock)issues.push({code:'BLOCK_LEN',sev:h.dur>L.maxBlock*1.5?'block':'warn',ids:[h.id],msg:`<b>${esc(h.title)}</b> runs ${durTxt(h.dur)} in one go. Focus fades after about ${durTxt(L.maxBlock)}, so it needs breaks.`});
+  });
+  const fit=list.filter(h=>h.area==='fitness').reduce((s,h)=>s+h.dur,0);
+  if(fit>L.exMin)issues.push({code:'EXERCISE',val:fit,sev:fit>=L.exMin*1.5?'block':'warn',msg:`<b>${durTxt(fit)}</b> of exercise is planned. The limit for ages ${L.label} is ${durTxt(L.exMin)} a day.`});
+  const hard=list.filter(h=>h.int===3),hardMin=hard.reduce((s,h)=>s+h.dur,0);
+  if(hardMin>L.hardMin)issues.push({code:'HARD_MIN',val:hardMin,sev:'warn',msg:`<b>${durTxt(hardMin)}</b> of hard-effort time. Keep it under ${durTxt(L.hardMin)}.`});
+  if(hard.length>L.hardCount)issues.push({code:'HARD_COUNT',val:hard.length,sev:'warn',msg:`<b>${hard.length}</b> hard blocks in one day. The limit is ${L.hardCount}.`});
+  list.forEach(h=>{
+    const o=sleepOverlap(h,L);
+    if(o>0&&(L.strictSleep||o>=45))issues.push({code:'SLEEP',sev:L.strictSleep?'block':'warn',ids:[h.id],msg:`<b>${esc(h.title)}</b> cuts ${durTxt(o)} into protected sleep (${fmt(L.sleepStart)} to ${fmt(L.sleepEnd)}). Ages ${L.label} need ${L.sleepHrs}+ hours.`});
+  });
+  if(load>=L.cap*.75&&!list.some(h=>h.area==='mind'&&h.dur>=20))issues.push({code:'NO_REST',val:1,sev:'warn',msg:'This is a heavy day with no rest block. Add at least 20 minutes of reset time.'});
+  for(let i=0;i<list.length-1;i++){
+    const a=list[i],c=list[i+1],gap=c.start-(a.start+a.dur);
+    if(a.int===3&&c.int===3&&gap>=0&&gap<15)issues.push({code:'B2B',sev:'warn',ids:[a.id,c.id],msg:`<b>${esc(a.title)}</b> and <b>${esc(c.title)}</b> are both hard and ${gap===0?'back to back':'only '+gap+' minutes apart'}.`});
+  }
+  const ord={conflict:0,block:1,warn:2};
+  issues.sort((x,y)=>ord[x.sev]-ord[y.sev]);
+  return{issues,load,cap:L.cap,hardMin,fit};
+}
+function overrideInfo(issues,b,k){
+  const L=LIMITS[b],ok=issues.every(i=>L.override.includes(i.sev)),left=L.overrideDaily-(state.overrides[k]||0);
+  return{ok,left,allowed:ok&&left>0};
+}
+function findSlot(list,d,from,to,gap){
+  for(let t=from;t+d<=to;t+=5)if(list.every(h=>t+d+gap<=h.start||t>=h.start+h.dur+gap))return t;
+  return null;
+}
+function findSlotBack(list,d,from,to,gap){
+  for(let t=to-d;t>=from;t-=5)if(list.every(h=>t+d+gap<=h.start||t>=h.start+h.dur+gap))return t;
+  return null;
+}
+function problemDays(){
+  const out=[];
+  for(let d=0;d<7;d++)if(evaluate(dayHabits(state.habits,d),bk()).issues.length)out.push(d);
+  return out;
+}
+
+/* Fix suggestions: each returns a new habit array, so the draft can be previewed before it is saved. */
+function suggest(draft,day,ev,b,touched){
+  const L=LIMITS[b],list=dayHabits(draft,day),out=[],seen=new Set();
+  const add=f=>{if(f&&!seen.has(f.key)){seen.add(f.key);out.push(f)}};
+  const heavy=[...list].sort((x,y)=>x.dur*W[x.int]-y.dur*W[y.int]).pop();
+  const byId=id=>list.find(h=>h.id===id);
+  const lightest=h=>{let best=null;ALL.forEach(d=>{if(h.days.includes(d))return;const l=loadOf(dayHabits(draft,d));if(!best||l<best.l)best={d,l}});return best};
+  const fSplit=h=>{
+    const n=Math.min(5,Math.max(2,Math.ceil(h.dur/L.maxBlock))),part=Math.max(15,Math.round(h.dur/n/5)*5);
+    return{key:'split'+h.id,label:`Split “${esc(h.title)}” into ${n} sessions`,detail:`${n} sessions of ${durTxt(part)}, spread through the day with breaks between`,apply:arr=>{
+      const others=arr.filter(x=>x.id!==h.id),near=others.filter(x=>x.days.some(d=>h.days.includes(d))),parts=[];
+      let cursor=h.start;
+      for(let i=0;i<n;i++){
+        let st=h.start;
+        if(i>0){const s=findSlot(near.concat(parts),part,cursor+45,L.sleepStart-30,15);st=s!==null?s:cursor+20}
+        st=Math.min(st,1440-part);
+        parts.push({...h,id:uid(),title:h.title+' ('+(i+1)+'/'+n+')',start:st,dur:part,days:[...h.days],part:true});
+        cursor=st+part;
+      }
+      return others.concat(parts);
+    }};
+  };
+  const fShorten=(h,to)=>to>=h.dur?null:{key:'short'+h.id+'-'+to,label:`Shorten “${esc(h.title)}” to ${durTxt(to)}`,detail:`Frees ${durTxt(h.dur-to)}`,apply:arr=>arr.map(x=>x.id===h.id?{...x,dur:to}:x)};
+  const fLighten=h=>{
+    if(h.int<=1)return null;
+    const to=h.int-1;
+    return{key:'light'+h.id,label:`Lower “${esc(h.title)}” from ${INTN[h.int]} to ${INTN[to]}`,detail:`Cuts load by ${r1(h.dur/60*(W[h.int]-W[to]))}`,apply:arr=>arr.map(x=>x.id===h.id?{...x,int:to}:x)};
+  };
+  const fSpread=h=>{
+    if(h.days.length!==1)return null;
+    const best=lightest(h);if(!best)return null;
+    const half=Math.ceil(h.dur/2/5)*5;
+    return{key:'spread'+h.id,label:`Spread “${esc(h.title)}” over two days`,detail:`${durTxt(half)} stays, ${durTxt(h.dur-half)} moves to ${DAYF[best.d]}`,apply:arr=>arr.map(x=>x.id===h.id?{...x,dur:half}:x).concat([{...h,id:uid(),title:h.title+' (part 2)',dur:h.dur-half,days:[best.d]}])};
+  };
+  const fMove=h=>{
+    if(h.days.length>1)return{key:'skip'+h.id,label:`Skip “${esc(h.title)}” on ${DAYF[day]}`,detail:'It stays on your other days',apply:arr=>arr.map(x=>x.id===h.id?{...x,days:x.days.filter(d=>d!==day)}:x)};
+    const best=lightest(h);if(!best)return null;
+    return{key:'move'+h.id,label:`Move “${esc(h.title)}” to ${DAYF[best.d]}`,detail:`${DAYF[best.d]} is your lightest day (load ${r1(best.l)})`,apply:arr=>arr.map(x=>x.id===h.id?{...x,days:[best.d]}:x)};
+  };
+  const fShift=(h,mode)=>{
+    /* A habit that repeats moves on every day it repeats, so the free slot must be free on all of them. */
+    const others=draft.filter(x=>x.id!==h.id&&x.days.some(d=>h.days.includes(d)));
+    const s=mode==='after'?findSlot(others,h.dur,h.start,L.sleepStart-15,10):findSlotBack(others,h.dur,L.sleepEnd,L.sleepStart-15,10);
+    if(s===null||s===h.start)return null;
+    return{key:'shift'+h.id+'-'+s,label:`Move “${esc(h.title)}” to ${fmt(s)}`,detail:'Same length, a free slot',apply:arr=>arr.map(x=>x.id===h.id?{...x,start:s}:x)};
+  };
+  const fRest=()=>{
+    let s=findSlot(list,30,660,L.sleepStart-60,10),len=30;
+    if(s===null){s=findSlot(list,20,420,L.sleepStart-30,5);len=20}
+    if(s===null)return null;
+    return{key:'rest',label:`Add a ${len} minute reset break at ${fmt(s)}`,detail:'Walk, water, no phone',apply:arr=>arr.concat([{id:uid(),title:'Reset break',area:'mind',start:s,dur:len,int:1,days:[day]}])};
+  };
+  const fGap=(a,c)=>{
+    const s=a.start+a.dur+15,others=draft.filter(x=>x.id!==c.id&&x.days.some(d=>c.days.includes(d)));
+    const free=s+c.dur<=L.sleepStart&&others.every(x=>s+c.dur<=x.start||s>=x.start+x.dur);
+    if(free)return{key:'gap'+c.id+'-'+s,label:`Start “${esc(c.title)}” at ${fmt(s)}`,detail:'Leaves a 15 minute break between the two hard blocks',apply:arr=>arr.map(x=>x.id===c.id?{...x,start:s}:x)};
+    return a.dur>=45?{key:'gapshort'+a.id,label:`Shorten “${esc(a.title)}” by 15m`,detail:'Leaves a 15 minute break between the two hard blocks',apply:arr=>arr.map(x=>x.id===a.id?{...x,dur:a.dur-15}:x)}:null;
+  };
+  const PRI={OVERLAP:0,BLOCK_LEN:1,EXERCISE:2,SLEEP:3,LOAD:4,HARD_MIN:5,HARD_COUNT:5,B2B:6,NO_REST:7};
+  for(const i of [...ev.issues].sort((p,q)=>PRI[p.code]-PRI[q.code])){
+    const h=i.ids&&byId(i.ids[0]);
+    if(i.code==='BLOCK_LEN'&&h){
+      /* Splitting spreads one long block through the day, but it does not cut the day's total load. Only offer it when the load already fits. */
+      if(!h.part&&ev.load<=L.cap)add(fSplit(h));
+      add(fShorten(h,L.maxBlock));if(h.dur>=120)add(fSpread(h));add(fLighten(h))}
+    if(i.code==='LOAD'&&heavy){
+      const ex=ev.load-L.cap,to=Math.max(30,Math.floor((heavy.dur-ex/(W[heavy.int]/60))/5)*5);
+      add(fShorten(heavy,to));add(fLighten(heavy));add(fSpread(heavy));add(fMove(heavy));
+    }
+    if(i.code==='EXERCISE'){
+      const fh=list.filter(x=>x.area==='fitness').sort((p,q)=>q.dur-p.dur)[0];
+      if(fh){const rest=list.filter(x=>x.area==='fitness'&&x.id!==fh.id).reduce((s,x)=>s+x.dur,0);add(fShorten(fh,Math.max(15,L.exMin-rest)));add(fLighten(fh))}
+    }
+    if(i.code==='HARD_MIN'||i.code==='HARD_COUNT'){
+      const hh=list.filter(x=>x.int===3).sort((p,q)=>q.dur-p.dur)[0];
+      if(hh){add(fLighten(hh));add(fMove(hh))}
+    }
+    if(i.code==='SLEEP'&&h){add(fShift(h,'back'));add(fMove(h))}
+    if(i.code==='OVERLAP'){
+      /* Move the habit being added or edited before touching one that was already in the plan. */
+      const pair=i.ids.map(byId).filter(Boolean),mine=pair.filter(x=>touched&&touched.has(x.id));
+      (mine.length?mine:pair).forEach(x=>{add(fShift(x,'after'));add(fShift(x,'back'))});
+    }
+    if(i.code==='B2B'){const a=byId(i.ids[0]),c=byId(i.ids[1]);if(a&&c)add(fGap(a,c))}
+    if(i.code==='NO_REST')add(fRest());
+  }
+  return out.slice(0,6);
+}
+</script>
+<script>
+'use strict';
+/* ---------- Advisor: age-tailored templates, no network ---------- */
+const TIPS={
+  academics:{kid:'Do homework at the same time every day. Work 25 minutes, rest 5. Start with the hardest page while you are fresh.',
+    teen:'Study in 25 to 45 minute blocks with a 5 to 10 minute break. Hardest subject first, phone in another room.',
+    adult:'Work in 45 to 90 minute blocks with a real break between them. Decide the exact task before you sit down. Quizzing yourself beats rereading.'},
+  career:{kid:'Ask people about their jobs and pick one job a month to learn about.',
+    teen:'Pick one career a month and find out what it takes: classes, skills, and how people got there. A club, a volunteer job, or shadowing someone helps.',
+    adult:'Name the target role, list the three skills it needs, and schedule one proof-of-work item a week: a project, a portfolio piece, or an outreach message.'},
+  skills:{kid:'Practice a little every day, even 10 minutes. Show someone what you learned.',
+    teen:'Short daily reps beat long weekend sessions. Track one number that shows progress.',
+    adult:'Schedule practice like a meeting. Twenty focused minutes, four days a week, beats one long session.'},
+  money:{kid:'Split what you get into save, spend, and share. Watch your savings grow.',
+    teen:'Track what comes in and goes out for a month. Set one savings goal with a number and a date.',
+    adult:'Automate savings on payday, review spending for 15 minutes a week, and keep one number for your emergency fund.'},
+  mind:{kid:'Get 9 or more hours of sleep, take screen breaks, and do something calm before bed.',
+    teen:'Protect 8 or more hours of sleep. A fixed wake time and a screen-free last half hour make the biggest difference. Rest is part of studying and training.',
+    adult:'Anchor your wake time, schedule one real break a day, and treat sleep as the base everything else sits on.'},
+  fitness:{kid:'Move every day with sports, bikes, or play. An hour is plenty and it should be fun.',
+    teen:'Three sessions a week of something you like beats daily burnout. Warm up, and take a rest day after hard sessions.',
+    adult:'Three to four sessions a week with at least one rest day. Put them on the calendar before work fills the slot.'},
+  social:{kid:'Make a plan with a friend, join a club or team, and say hi to someone new.',
+    teen:'Pick one standing thing a week: a club, a team, a study group, or a regular hangout. Put it on the calendar so homework does not swallow it.',
+    adult:'Make friend time recurring instead of waiting for it to happen. A standing weekly plan holds up better than good intentions.'},
+  love:{kid:'Spend real time with family. Say thank you, and ask how someone’s day went.',
+    teen:'Healthy relationships of any kind rest on respect, honesty, and being able to say no. Talk to a parent, counselor, or another trusted adult about anything that feels confusing or off.',
+    young:'Say plainly what you want, and set a regular time that is not whatever is left over. Respect and consent are the baseline.',
+    adult:'Schedule time that is not logistics. A weekly date or walk with phones away does more than the occasional big gesture.'}
+};
+const tipFor=id=>{const t=TIPS[id];return t[bk()]||t.adult};
+const COMBOS={
+  'academics|fitness':'Train first, then study: focus is sharper after exercise. Keep the workout a normal length and give the study block its own slot with a break in between.',
+  'academics|social':'Study with a friend or a small group for an hour, then hang out. You get the work done and the social time stays on the calendar.',
+  'career|fitness':'Look for roles with predictable hours, or flexibility, and put training on the calendar before you accept anything. Ask about schedules in the interview.',
+  'career|social':'Choose teams and workplaces with people you like. Networking can double as social time if you do it over a walk or a meal.',
+  'fitness|mind':'Treat rest days as part of training. Sleep is where the gains happen.',
+  'skills|social':'Practice with other people: a band, a club, a study group, a pickup game.',
+  'money|social':'Pick low-cost ways to see people on a standing day, and put the savings amount aside first.',
+  'academics|career':'Choose projects and electives that double as career proof. Each assignment can be a portfolio piece.'
+};
+function comboFor(a,b){const k=[a,b].sort().join('|');return COMBOS[k]||'Attach the new habit to something you already do. After the habit you keep, do the habit you want. Keep it small and put it at a fixed time.'}
+const gapOf=id=>state.areas[id].tgt-state.areas[id].cur;
+function ranked(){
+  const ids=AREAS.map(a=>a.id);
+  const weak=[...ids].filter(i=>gapOf(i)>=1).sort((x,y)=>gapOf(y)-gapOf(x)||state.areas[x].cur-state.areas[y].cur);
+  const strong=[...ids].filter(i=>state.areas[i].cur>=4).sort((x,y)=>state.areas[y].cur-state.areas[x].cur);
+  return{weak,strong};
+}
+function nextHabit(){
+  const now=new Date(),k=dkey(now),mins=now.getHours()*60+now.getMinutes();
+  const list=dayHabits(state.habits,now.getDay()).filter(h=>!isDone(k,h.id));
+  return list.find(h=>h.start+h.dur>mins)||list[0]||null;
+}
+const joinNames=ids=>{const n=ids.map(aName);return n.length<2?n.join(''):n.slice(0,-1).join(', ')+' and '+n[n.length-1]};
+
+function aiFocus(){
+  const b=bk(),{weak,strong}=ranked(),n=nextHabit(),w=weak[0],st=strong.slice(0,2);
+  if(!n&&!w)return'You are on target everywhere and today’s list is done. Keep your habits small and your sleep steady.';
+  const next=n?`${n.title} at ${fmt(n.start)}`:null,a=w?state.areas[w]:null;
+  const gap=w?`${aName(w)} (${a.cur} now, aiming for ${a.tgt})`:'';
+  if(b==='kid')return `${next?`Start with ${next}. `:'You finished everything for today. Great job! '}${w?`${aName(w)} is the one to give extra time this week. `:''}Small steps count, and every check mark is a win.`;
+  if(b==='teen')return `${next?`Next up: ${next}. `:'Today’s list is done. '}${w?`Your biggest gap is ${gap}. Do that block first, before the rest of the day pushes it out. `:''}If a day feels like too much, shorten the plan instead of skipping it.`;
+  if(b==='young')return `${next?`Next up: ${next}. `:'Today’s list is done. '}${w?`Biggest gap right now is ${gap}. Put a block of it early, while you still have energy. `:''}${st.length?`${joinNames(st)} are strong, so a light version is enough there.`:''}`;
+  return `${next?`Next block: ${next}. `:'Today’s list is done. '}${w?`Largest gap: ${gap}. Protect one early block for it. `:''}${st.length?`${joinNames(st)} are in good shape. A maintenance minimum is enough.`:''}`;
+}
+function aiGap(areaId){
+  const b=bk(),{weak}=ranked(),id=areaId||weak[0];
+  if(!id)return'Every area is at or above target. Keep your habits small and your rest protected.';
+  const a=state.areas[id],w=weekStats(id),m=MODES.find(x=>x.id===a.mode);
+  const intro={kid:`Let’s help your ${aName(id)}. `,teen:`${aName(id)}: ${a.cur} now, target ${a.tgt}. `,young:`${aName(id)} is the gap: ${a.cur} now, target ${a.tgt}. `,adult:`${aName(id)}: ${a.cur} to ${a.tgt}. `}[b];
+  const prog=`Mode is ${m.name}, with ${w.done} of ${w.target} sessions so far this week. `;
+  let extra='';
+  if(id==='love'&&b==='teen')extra=' I don’t coach dating, but I can help you keep school, sleep, and friendships healthy.';
+  if(id==='love'&&b==='kid')extra='';
+  return intro+prog+tipFor(id)+extra;
+}
+function aiBalance(){
+  const b=bk(),{weak,strong}=ranked(),s=strong.slice(0,2),w=weak.slice(0,2);
+  if(!s.length||!w.length)return'There is no clear strength to protect against a clear gap yet. Raise a target, or mark one area as a 4 or 5 and I will build the plan around it.';
+  const combo=comboFor(s[0],w[0]);
+  const head={kid:`You are strong at ${joinNames(s)}. Keep doing those, and give ${joinNames(w)} a little extra. `,
+    teen:`Strong: ${joinNames(s)}. Needs work: ${joinNames(w)}. The goal is to build the weak area without dropping the strong ones. `,
+    young:`You are strong in ${joinNames(s)} and behind in ${joinNames(w)}. Build the gap without giving up what already works. `,
+    adult:`Strong: ${joinNames(s)}. Behind: ${joinNames(w)}. Hold the strengths at maintenance and put the new effort into the gap. `}[b];
+  return head+combo+' Switch the strong areas to Maintain or Coast and the weak ones to Build.';
+}
+function aiOverwhelmed(){
+  const b=bk(),pd=problemDays();
+  const have=pd.length?`${pd.length} day${pd.length>1?'s are':' is'} over your limit: ${pd.map(d=>DAYF[d]).join(', ')}. `:'Your plan is within your limits, so this may be about the load you carry outside it. ';
+  return{kid:`Feeling like it is too much is okay. Tell a parent or teacher so they can help. ${have}For today, pick one thing, do it, then rest. We can cut the rest.`,
+    teen:`Overwhelm is a signal, not a flaw. ${have}Cut today to the three things that matter, protect your sleep, and tell a parent, teacher, or counselor if it keeps going.`,
+    young:`${have}Cut the list to three, move the rest to a lighter day, and keep sleep and one rest block. If it stays heavy for more than a couple of weeks, talk to someone: a friend, an advisor, or a counselor.`,
+    adult:`${have}Cut to three priorities, move the rest to a lighter day, and keep one rest block. If it lasts more than a couple of weeks, talk to someone you trust or a professional.`}[b];
+}
+const CRISIS=/\b(hurt myself|kill myself|suicid\w*|self[- ]?harm|want to die|end it all|no reason to live)\b/i;
+const SENSITIVE=/\b(sex|sexual|sexy|hook ?ups?|porn|nudes?|drugs?|weed|vap(e|es|ing)|alcohol|drunk|beer|wine|booze|wasted|vodka|liquor|get high|high on)\b/i;
+const PARTY=/\b(part(y|ies|ying)|clubbing|nightlife|going out|go out)\b/i;
+function aiAsk(text){
+  const b=bk();
+  if(CRISIS.test(text))return{kind:'safe',html:'I am really glad you said something. You do not have to carry this alone. If you might hurt yourself, call or text <b>988</b> (the Suicide and Crisis Lifeline, US) right now, or call your local emergency number. '+(b==='kid'||b==='teen'?'Please also tell a parent, teacher, or another adult you trust today.':'Please reach out to someone close to you too.')};
+  if(SENSITIVE.test(text)||(PARTY.test(text)&&/\bdrink/i.test(text))){
+    const msg={kid:'That is a question for a parent, a doctor, or another adult you trust. I stay with school, play, sleep, and family. Want help with your plan for today?',
+      teen:'I do not give advice on that. A parent, doctor, school counselor, or another adult you trust is the right person. I can help with school, sport, sleep, friends, and your plan.',
+      young:'That is outside what I cover. A doctor, a clinic, or campus health services are the right place for health questions. I can help with your schedule, sleep, and goals.',
+      adult:'That is outside what I cover. A doctor or clinic is the right place for health questions. I can help with your schedule, sleep, and goals.'}[b];
+    return{kind:'safe',html:esc(msg)};
+  }
+  if(PARTY.test(text)){
+    if(b==='kid'||b==='teen')return{kind:'safe',html:esc(b==='kid'?'Fun with friends is great, and a parent should always know where you are and who you are with. Want me to plan some friend time into your week?':'I do not give advice on parties. I can plan regular time with friends into your week. For anything that feels unsafe or unclear, talk to a parent or another trusted adult, and always tell someone where you are.')};
+    return{html:esc('Plan nights out so they do not cost you the next day: set an end time, protect your sleep window, and keep the next morning light. Want me to block recovery time after it?')};
+  }
+  const t=text.toLowerCase();
+  if(/(overwhelm|too much|stress|burn(ed|t)? ?out|exhaust|tired|can.?t cope)/.test(t))return{html:esc(aiOverwhelmed())};
+  if(/(strength|balance|keep|protect|both)/.test(t))return{html:esc(aiBalance())};
+  if(/(focus|today|next|priority)/.test(t))return{html:esc(aiFocus())};
+  const map=[[/(study|exam|midterm|homework|grade|school|class|test)/,'academics'],[/(workout|gym|exercise|run|fit|train|lift|sport)/,'fitness'],[/(career|job|intern|resume|work)/,'career'],
+    [/(money|budget|save|saving|spend|earn)/,'money'],[/(sleep|rest|mind|relax|anxi)/,'mind'],[/(friend|social|lonely)/,'social'],[/(skill|hobby|guitar|music|code|learn|practice)/,'skills'],[/(date|dating|love|partner|girlfriend|boyfriend|crush|relationship|family)/,'love']];
+  for(const [re,id] of map)if(re.test(t)){
+    let extra='';
+    if(id==='love'&&b==='kid')extra='That is a good thing to talk about with a parent too. ';
+    return{html:esc(extra+aiGap(id))};
+  }
+  return{html:esc('I can help with your focus for today, your biggest gap, keeping strengths while you build, or feeling overwhelmed. Pick one below, or ask about school, fitness, career, money, rest, friends, or relationships.')};
+}
+const VOICES={kid:{who:'10–13',txt:'You missed study three days. That is okay! Let’s do one short homework block today, just 25 minutes. Then you get a break. You can do it!'},
+  teen:{who:'14–17',txt:'Three days without studying. Do one 45 minute block today, hardest subject first, phone in another room. If the week feels crowded, tell the plan and shorten it.'},
+  young:{who:'18–24',txt:'Three days off study. Put one 90 minute block early today, before anything else can take the slot. Then reassess the rest of the week.'},
+  adult:{who:'25+',txt:'Study is three days behind. Block 90 minutes early today and move one lower-value item to make room.'}};
+
+/* ---------- Reminders ---------- */
+const bodyFor=(h,b,kind)=>{
+  const t={kid:{lead:'Get ready, you have got this.',start:'Time to begin. Do your best.',after:'Tap to check it off.'},
+    teen:{lead:h.area==='academics'?'Phone in another room.':'Wrap up what you are doing.',start:'Start now. Small first step.',after:'Tap to check it off.'},
+    young:{lead:'Heads up.',start:'',after:''},adult:{lead:'Block starts soon.',start:'',after:''}}[b];
+  return t[kind]||'';
+};
+function genReminders(day,b,onlyAreas){
+  const R=LIMITS[b].rem,list=dayHabits(state.habits,day).filter(h=>!onlyAreas||state.rem.areas[h.area]),out=[];
+  if(state.rem.digest&&list.length)out.push({t:R.morning,title:`Today: ${list.length} habit${list.length>1?'s':''}`,body:`First up is ${list[0].title} at ${fmt(list[0].start)}.`,area:null});
+  list.forEach(h=>{
+    if(R.onlyHard&&h.int<3)return;
+    out.push({t:Math.max(0,h.start-R.lead),title:`${h.title} in ${R.lead} min`,body:bodyFor(h,b,'lead'),area:h.area});
+    if(R.atStart)out.push({t:h.start,title:`Time for ${h.title}`,body:bodyFor(h,b,'start'),area:h.area});
+    if(R.after)out.push({t:Math.min(1439,h.start+h.dur),title:`Finished ${h.title}?`,body:bodyFor(h,b,'after'),area:h.area});
+  });
+  if(list.length)out.push({t:R.evening,title:'Evening check-in',body:'Log a win and check off what you finished.',area:null});
+  return out.sort((x,y)=>x.t-y.t);
+}
+</script>
+<script>
+'use strict';
+/* ---------- UI state and view renderers ---------- */
+const ui={day:new Date().getDay(),remDay:new Date().getDay(),clock:480,adv:[],form:null,formErr:'',modal:null,gate:null,gating:false,resetArmed:false};
+const TABS=[['today','Today'],['plan','Plan'],['areas','Areas'],['advisor','Advisor'],['reminders','Reminders'],['log','Wins'],['safety','Age and limits']];
+const ORDER=[1,2,3,4,5,6,0];
+const $=id=>document.getElementById(id);
+function newForm(day){return{id:null,title:'',area:'academics',start:'16:00',dur:60,int:2,days:[day]}}
+function toast(html){const t=document.createElement('div');t.className='toast';t.innerHTML=html;$('toasts').appendChild(t);setTimeout(()=>t.remove(),4200)}
+const sevName={conflict:'Conflict',block:'Blocked',warn:'Warning'};
+
+function ringSvg(p){
+  const c=2*Math.PI*52,pc=Math.round(p*100);
+  return `<svg class="ring" viewBox="0 0 132 132" role="img" aria-label="${pc} percent of today's habits done"><circle class="track" cx="66" cy="66" r="52"></circle>${p>0?`<circle class="arc" cx="66" cy="66" r="52" stroke-dasharray="${(c*p).toFixed(1)} ${c.toFixed(1)}" transform="rotate(-90 66 66)"></circle>`:''}<text x="66" y="66" text-anchor="middle" dominant-baseline="central">${pc}%</text></svg>`;
+}
+function wheelSvg(){
+  const n=AREAS.length,cx=150,cy=150,R=100,f=x=>x.toFixed(1);
+  const pt=(i,v)=>{const a=-Math.PI/2+i*2*Math.PI/n,r=R*v/5;return[cx+r*Math.cos(a),cy+r*Math.sin(a)]};
+  let g='';
+  [1,2,3,4,5].forEach(v=>{g+=`<polygon class="ax" points="${AREAS.map((_,i)=>pt(i,v).map(f).join(',')).join(' ')}"></polygon>`});
+  AREAS.forEach((a,i)=>{const[x,y]=pt(i,5);g+=`<line class="ax" x1="${cx}" y1="${cy}" x2="${f(x)}" y2="${f(y)}"></line>`});
+  const poly=k=>AREAS.map((a,i)=>pt(i,state.areas[a.id][k]).map(f).join(',')).join(' ');
+  g+=`<polygon class="pt" points="${poly('tgt')}"></polygon><polygon class="pc" points="${poly('cur')}"></polygon>`;
+  AREAS.forEach((a,i)=>{const[x,y]=pt(i,state.areas[a.id].cur);g+=`<circle cx="${f(x)}" cy="${f(y)}" r="4.5" style="fill:var(--c-${a.id})" stroke="var(--surface)" stroke-width="1.5"></circle>`});
+  AREAS.forEach((a,i)=>{const[x,y]=pt(i,5.9),anc=x<cx-8?'end':x>cx+8?'start':'middle';g+=`<text x="${f(x)}" y="${f(y)}" text-anchor="${anc}" dominant-baseline="central">${esc(aShort(a.id))}</text>`});
+  return `<svg class="wheel" viewBox="-30 0 360 300" role="img" aria-label="Balance wheel comparing where you are now with your targets across eight life areas">${g}</svg>
+  <div class="legend"><span class="key"><i></i>Now</span><span class="key"><i class="t"></i>Target</span></div>`;
+}
+function habitRow(h,k,mode){
+  const done=mode==='today'&&isDone(k,h.id),col=aCol(h.area);
+  const lead=mode==='today'?`<button class="chk lead" type="button" role="checkbox" aria-checked="${done}" aria-label="Mark ${esc(h.title)} done" data-act="toggle" data-id="${h.id}"></button>`:`<span class="dot lead" style="--c:${col}"></span>`;
+  const acts=mode==='today'?`<span class="mono small muted">+${ptsOf(h)}</span>`:`<button class="btn ghost sm" type="button" data-act="edit" data-id="${h.id}">Edit</button> <button class="btn ghost sm" type="button" data-act="del" data-id="${h.id}" aria-label="Remove ${esc(h.title)}">Remove</button>`;
+  return `<div class="hrow${done?' done':''}">${lead}<span class="time">${fmt(h.start)}</span>
+    <div class="mid"><div class="ttl">${esc(h.title)}</div><div class="row small muted" style="gap:6px"><span class="dot" style="--c:${col}"></span>${esc(aShort(h.area))} · ${durTxt(h.dur)} · ${INTN[h.int]}${h.pushed?' <span class="sev">Pushed</span>':''}</div></div>
+    <div class="acts row" style="gap:6px;flex-wrap:nowrap">${acts}</div></div>`;
+}
+function winForm(){
+  return `<form id="winForm" class="stack" autocomplete="off">
+    <div class="fgrid">
+      <div class="field"><label class="lbl" for="winArea">Area</label><select class="in" id="winArea">${AREAS.map(a=>`<option value="${a.id}">${esc(aName(a.id))}</option>`).join('')}</select></div>
+      <div class="field" style="grid-column:span 2"><label class="lbl" for="winText">What did you get done?</label><input class="in" id="winText" maxlength="120" placeholder="Finished chapter 4 notes"></div>
+    </div>
+    <div class="row between"><div class="pills">${QUICKWINS.map(t=>`<button class="pill" type="button" data-act="quickWin" data-t="${esc(t)}">${esc(t)}</button>`).join('')}</div><button class="btn" type="submit">Log win</button></div>
+  </form>`;
+}
+
+/* ----- Gate ----- */
+function vGate(){
+  const g=ui.gate||(ui.gate={b:state.profile?state.profile.bracket:null,parent:false,err:''});
+  const changing=!!state.profile;
+  return `<div class="split" style="align-items:start">
+    <div class="stack" style="gap:18px">
+      <h1 class="hero">Track every part of your life in one place</h1>
+      <p class="muted" style="max-width:52ch">LockIn follows eight areas of your life, tells you where you are falling behind, and limits how much you can stack on one day. Your age range decides what the advisor says, how often it reminds you, and how much you can take on.</p>
+      <div class="pills">${AREAS.map(a=>`<span class="tag"><span class="dot" style="--c:var(--c-${a.id})"></span>${esc(a.id==='love'?'Love':a.short)}</span>`).join('')}</div>
+    </div>
+    <div class="card stack">
+      <div><div class="lbl">${changing?'Change age range':'Step 1'}</div><h2 class="sec">Pick your age range</h2></div>
+      <div class="cols" style="gap:10px;grid-template-columns:repeat(2,minmax(0,1fr))">${['kid','teen','young','adult'].map(b=>`<button class="opt" type="button" aria-pressed="${g.b===b}" data-act="gateAge" data-b="${b}"><b>${BRACKETS[b].label}</b><span class="small muted">${BRACKETS[b].title}</span></button>`).join('')}</div>
+      ${g.b==='kid'?`<label class="row" style="gap:10px;align-items:flex-start"><input type="checkbox" id="gateParent" ${g.parent?'checked':''} style="width:20px;height:20px;margin-top:2px;accent-color:var(--fg)"><span class="small">A parent or guardian is helping me set this up.</span></label>`:''}
+      ${g.err?`<p class="err" role="alert">${esc(g.err)}</p>`:''}
+      <div class="row between">${changing?`<button class="btn ghost" type="button" data-act="gateCancel">Cancel</button>`:'<span></span>'}<button class="btn" type="button" data-act="gateStart">${changing?'Switch age range':'Start'}</button></div>
+      <p class="small muted">Prototype note: the age range is self-selected here. ${changing?'Switching loads that age’s starter habits and limits. ':''}A real release needs age verification and a parent account for children under 13.</p>
+    </div>
+  </div>`;
+}
+
+/* ----- Today ----- */
+function vToday(){
+  const now=new Date(),wd=now.getDay(),k=dkey(now),list=dayHabits(state.habits,wd);
+  const done=list.filter(h=>isDone(k,h.id)).length,p=list.length?done/list.length:0,pd=problemDays();
+  return `${state.example?`<div class="banner calm"><span class="small">Example data is loaded so you can see how the app looks after a week of use.</span><button class="btn ghost sm" type="button" data-act="clearExamples">Clear examples</button></div>`:''}
+  ${pd.length?`<div class="banner" role="alert"><div class="stack" style="gap:2px"><b>Too much on your plate</b><span class="small">${pd.map(d=>DAYF[d]).join(', ')} ${pd.length>1?'are':'is'} over the limits for ages ${Lim().label}.</span></div><button class="btn alert sm" type="button" data-act="openPlan" data-d="${pd[0]}">Review ${DAYF[pd[0]]}</button></div>`:''}
+  <div class="split">
+    <div class="stack">
+      <div class="card stack">
+        <div class="row between"><div><div class="lbl">${now.toLocaleDateString(undefined,{weekday:'long',month:'long',day:'numeric'})}</div><h2 class="sec">Today’s habits</h2></div>${ringSvg(p)}</div>
+        <div class="row" style="gap:28px"><div><div class="num sm">${streak()}</div><div class="lbl">Day streak</div></div><div><div class="num sm">${weekPoints()}</div><div class="lbl">Points this week</div></div><div><div class="num sm">${done}/${list.length}</div><div class="lbl">Done today</div></div></div>
+        <div>${list.length?list.map(h=>habitRow(h,k,'today')).join(''):`<div class="empty">Nothing planned for today. Add a habit in Plan, or enjoy the rest.</div>`}</div>
+      </div>
+      <div class="card stack"><h2 class="sec">Log a win</h2>${winForm()}</div>
+    </div>
+    <div class="stack">
+      <div class="card stack"><h2 class="sec">Balance</h2>${wheelSvg()}</div>
+      <div class="card stack"><h2 class="sec">Advisor</h2><p>${esc(aiFocus())}</p><div><button class="btn ghost sm" type="button" data-act="tab" data-tab="advisor">Ask the advisor</button></div></div>
+    </div>
+  </div>`;
+}
+
+/* ----- Plan ----- */
+function stripHtml(list,L){
+  const pc=x=>(x/1440*100).toFixed(2)+'%';
+  const zones=`<div class="zone" style="left:0;width:${pc(L.sleepEnd)}"></div><div class="zone" style="left:${pc(L.sleepStart)};width:${pc(1440-L.sleepStart)}"></div>`;
+  const blocks=list.map(h=>`<div class="sb" style="left:${pc(h.start)};width:${pc(h.dur)};--c:${aCol(h.area)}" title="${esc(h.title)}, ${fmt(h.start)} to ${fmt(h.start+h.dur)}"></div>`).join('');
+  const ticks=[[0,'12a'],[360,'6a'],[720,'12p'],[1080,'6p']].map(t=>`<span style="left:${pc(t[0])}">${t[1]}</span>`).join('');
+  return `<div class="strip" role="img" aria-label="Day timeline. Hatched areas are protected sleep.">${zones}${blocks}</div><div class="ticks" aria-hidden="true">${ticks}</div>`;
+}
+function vPlan(){
+  const L=Lim(),b=bk(),d=ui.day,list=dayHabits(state.habits,d),ev=evaluate(list,b),tw=new Date().getDay();
+  if(!ui.form)ui.form=newForm(d);
+  const f=ui.form,max=Math.max(L.cap*1.5,ev.load*1.05),dayBtns=ORDER.map(x=>{
+    const e=evaluate(dayHabits(state.habits,x),b),over=e.issues.length>0;
+    return `<button class="daybtn${over?' over':''}${x===tw?' today':''}" type="button" aria-pressed="${x===d}" data-act="selDay" data-d="${x}" aria-label="${DAYF[x]}, load ${r1(e.load)} of ${L.cap}${over?', over limits':''}"><b>${DAYN[x]}</b><span class="ld">${r1(e.load)}</span><span class="bar"><i style="width:${Math.min(100,e.load/L.cap*100)}%"></i></span></button>`;
+  }).join('');
+  const issues=ev.issues.map(i=>`<div class="issue"><span class="sev ${i.sev}">${sevName[i.sev]}</span><p class="small">${i.msg}</p></div>`).join('');
+  return `<div class="split" style="align-items:start">
+    <div class="stack">
+      <div class="days" role="group" aria-label="Day of the week">${dayBtns}</div>
+      <div class="card stack">
+        <div class="row between"><div><div class="lbl">${DAYF[d]}</div><h2 class="sec">Day load</h2></div><div class="num sm">${r1(ev.load)}<span class="muted"> / ${L.cap}</span></div></div>
+        <div class="meter" role="img" aria-label="Load ${r1(ev.load)} of ${L.cap}"><div class="fill" style="width:${Math.min(ev.load,L.cap)/max*100}%"></div>${ev.load>L.cap?`<div class="over" style="left:${L.cap/max*100}%;width:${(ev.load-L.cap)/max*100}%"></div>`:''}<div class="cap" style="left:${L.cap/max*100}%"></div></div>
+        <p class="small muted">Load is hours times effort (light 0.5, steady 1, hard 1.5 per hour). The line marks the limit for ages ${L.label}.</p>
+        ${stripHtml(list,L)}
+        ${issues?`<div>${issues}</div>`:''}
+        <div>${list.length?list.map(h=>habitRow(h,'','plan')).join(''):`<div class="empty">No habits on ${DAYF[d]}. Add one to start the day.</div>`}</div>
+      </div>
+    </div>
+    <div class="stack">
+      <form class="card stack" id="habitForm" autocomplete="off" novalidate>
+        <h2 class="sec">${f.id?'Edit habit':'Add a habit'}</h2>
+        <div class="field"><label class="lbl" for="f-title">Habit</label><input class="in" id="f-title" maxlength="60" value="${esc(f.title)}" placeholder="Study for midterm"></div>
+        <div class="field"><label class="lbl" for="f-area">Area</label><select class="in" id="f-area">${AREAS.map(a=>`<option value="${a.id}"${f.area===a.id?' selected':''}>${esc(aName(a.id))}</option>`).join('')}</select></div>
+        <div class="fgrid">
+          <div class="field"><label class="lbl" for="f-start">Starts</label><input class="in" type="time" id="f-start" value="${esc(f.start)}"></div>
+          <div class="field"><label class="lbl" for="f-dur">Minutes</label><input class="in" type="number" id="f-dur" min="5" max="720" step="5" value="${f.dur}"></div>
+          <div class="field"><label class="lbl" for="f-int">Effort</label><select class="in" id="f-int">${[1,2,3].map(n=>`<option value="${n}"${+f.int===n?' selected':''}>${INTN[n]}</option>`).join('')}</select></div>
+        </div>
+        <div class="field"><span class="lbl" id="f-days-l">Repeats on</span><div class="pills" role="group" aria-labelledby="f-days-l">${ORDER.map(x=>`<button class="pill" type="button" aria-pressed="${f.days.includes(x)}" data-act="formDay" data-d="${x}">${DAYN[x]}</button>`).join('')}</div></div>
+        ${ui.formErr?`<p class="err" role="alert">${esc(ui.formErr)}</p>`:''}
+        <div class="row between"><button class="btn" type="submit">${f.id?'Save changes':'Add habit'}</button>${f.id?`<button class="btn ghost" type="button" data-act="formCancel">Cancel</button>`:''}</div>
+      </form>
+      <div class="card stack"><h2 class="sec">Try the limit</h2><p class="small muted">Adds a 3 hour hard workout and an 8 hour hard study block to ${DAYF[d]}, the way you might plan a midterm day. The check runs before anything is saved.</p><div><button class="btn ghost" type="button" data-act="scenario">Plan the midterm day</button></div></div>
+    </div>
+  </div>`;
+}
+
+/* ----- Areas ----- */
+function areaCard(a){
+  const id=a.id,s=state.areas[id],st=areaStatus(id),w=weekStats(id),m=MODES.find(x=>x.id===s.mode);
+  const line=st==='support'?tipFor(id):st==='strong'?'Strong right now. Keep it on Maintain or Coast so it does not take time from your gaps.':'Steady. Keep to the weekly target.';
+  const sl=(k,lab)=>`<div class="field"><div class="row between"><label class="lbl" for="${k}-${id}">${lab}</label><span class="mono small" id="${k}v-${id}">${s[k]} / 5</span></div><input type="range" id="${k}-${id}" min="1" max="5" step="1" value="${s[k]}" data-area="${id}" data-k="${k}"></div>`;
+  return `<article class="card acard" style="--c:var(--c-${id})">
+    <div class="row between"><div class="row" style="gap:8px"><span class="dot" style="--c:var(--c-${id})"></span><h3>${esc(aName(id))}</h3></div><span class="tag ${st}">${STATUS_TXT[st]}</span></div>
+    <p class="small muted">${esc(aDesc(id))}</p>
+    ${sl('cur','Where I am')}${sl('tgt','Where I want to be')}
+    <div class="field"><span class="lbl">Mode</span><div class="pills" role="group" aria-label="${esc(aName(id))} mode">${MODES.map(x=>`<button class="pill" type="button" aria-pressed="${s.mode===x.id}" data-act="mode" data-a="${id}" data-m="${x.id}">${x.name}</button>`).join('')}</div><p class="small muted">${m.blurb}</p></div>
+    <div class="field"><div class="row between"><span class="lbl">This week</span><span class="mono small">${w.done} of ${w.target}</span></div><div class="meter"><div class="fill" style="width:${w.pct*100}%;background:var(--c-${id})"></div></div></div>
+    <p class="small">${esc(line)}</p>
+  </article>`;
+}
+function vAreas(){
+  return `<div class="card stack"><div class="row between"><div><h2 class="sec">Profiles to try</h2><p class="small muted">Each one sets where you are, where you want to be, and a mode for every area. Sprint is limited to ${Lim().sprints} area${Lim().sprints>1?'s':''} at a time for ages ${Lim().label}.</p></div></div>
+    <div class="pills">${PERSONAS.map(p=>`<button class="pill" type="button" data-act="persona" data-p="${p.id}">${esc(p.label)}</button>`).join('')}</div></div>
+  <div class="cols">${AREAS.map(areaCard).join('')}</div>`;
+}
+
+/* ----- Advisor ----- */
+function vAdvisor(){
+  if(!ui.adv.length)ui.adv=[{who:'ai',html:esc(aiFocus())}];
+  const b=bk();
+  const chips=[['focus','What should I focus on today?'],['gap','What is my biggest gap?'],['balance','Keep my strengths while I build'],['over','I feel overwhelmed'],['love',`Help with ${aName('love')}`],['social','Help with my social life']];
+  return `<div class="split" style="align-items:start">
+    <div class="card stack">
+      <div><div class="lbl">Simulated advisor · voice for ages ${Lim().label}</div><h2 class="sec">Ask the advisor</h2></div>
+      <div class="chat" role="log" aria-live="polite">${ui.adv.map(m=>`<div class="msg${m.who==='me'?' me':''}${m.kind==='safe'?' safe':''}">${m.who==='me'?esc(m.html):m.html}</div>`).join('')}</div>
+      <div class="pills">${chips.map(c=>`<button class="pill" type="button" data-act="advTopic" data-t="${c[0]}">${esc(c[1])}</button>`).join('')}</div>
+      <form id="advForm" class="row" style="flex-wrap:nowrap" autocomplete="off"><label class="lbl" for="advText" style="position:absolute;left:-9999px">Ask a question</label><input class="in grow" id="advText" maxlength="160" placeholder="Ask about school, fitness, money, friends, rest, or relationships"><button class="btn" type="submit">Ask</button></form>
+      <p class="small muted">Answers are written from templates and your own numbers, so this works offline. Try typing a question about parties, drinking, or sex under each age range to see the guardrail.</p>
+    </div>
+    <div class="card stack">
+      <h2 class="sec">One situation, four voices</h2>
+      <p class="small muted">The same message when someone skipped studying for three days.</p>
+      ${['kid','teen','young','adult'].map(k=>`<div class="tone${k===b?' cur':''}"><div class="row between"><span class="lbl">Ages ${VOICES[k].who}</span>${k===b?'<span class="tag">You</span>':''}</div><p>${esc(VOICES[k].txt)}</p></div>`).join('')}
+    </div>
+  </div>`;
+}
+
+/* ----- Reminders ----- */
+function remList(){
+  const b=bk();
+  if(!state.rem.on)return `<div class="empty">Reminders are off. Nothing will be sent.</div>`;
+  const list=genReminders(ui.remDay,b,true);
+  if(!list.length)return `<div class="empty">No reminders for ${DAYF[ui.remDay]}. Add habits in Plan or turn an area back on.</div>`;
+  return list.map(n=>`<div class="note${n.t>ui.clock?' future':''}"><span class="t">${fmt(n.t)}</span><div><div class="row" style="gap:8px"><b>${esc(n.title)}</b>${n.t<=ui.clock?'<span class="tag">Sent</span>':''}</div>${n.body?`<div class="small muted">${esc(n.body)}</div>`:''}</div></div>`).join('');
+}
+function vReminders(){
+  const b=bk(),R=state.rem;
+  const cmp=['kid','teen','young','adult'].map(k=>`<tr${k===b?' class="cur"':''}><td><b>${BRACKETS[k].label}</b></td><td class="mono">${genReminders(ui.remDay,k,true).length}</td><td>${esc(LIMITS[k].rem.text)}</td></tr>`).join('');
+  return `<div class="split" style="align-items:start">
+    <div class="stack">
+      <div class="card stack">
+        <div class="row between"><div><div class="lbl">Simulated notifications</div><h2 class="sec">Reminders</h2></div>
+          <button class="btn${R.on?'':' ghost'}" type="button" role="switch" aria-checked="${R.on}" data-act="remToggle" data-k="on">${R.on?'Reminders on':'Reminders off'}</button></div>
+        <p class="small muted">Style for ages ${Lim().label}: ${esc(Lim().rem.text)}.</p>
+        <div class="row" style="gap:10px"><button class="pill" type="button" aria-pressed="${R.digest}" data-act="remToggle" data-k="digest">Morning brief</button><span class="lbl">Send for</span></div>
+        <div class="pills">${AREAS.map(a=>`<button class="pill" type="button" aria-pressed="${R.areas[a.id]}" data-act="remArea" data-a="${a.id}"><span class="dot" style="--c:var(--c-${a.id});display:inline-block;margin-right:6px"></span>${esc(aShort(a.id))}</button>`).join('')}</div>
+      </div>
+      <div class="card stack">
+        <div class="days" role="group" aria-label="Day to preview">${ORDER.map(x=>`<button class="daybtn" type="button" aria-pressed="${x===ui.remDay}" data-act="remDay" data-d="${x}"><b>${DAYN[x]}</b></button>`).join('')}</div>
+        <div class="field"><div class="row between"><label class="lbl" for="clock">Simulated time of day</label><span class="mono" id="clockLbl">${fmt(ui.clock)}</span></div><input type="range" id="clock" min="0" max="1425" step="15" value="${ui.clock}"></div>
+        <div id="remList">${remList()}</div>
+        <div><button class="btn ghost sm" type="button" data-act="testNotif">Send a test</button></div>
+        <p class="small muted">Real phone notifications need a server and the person’s permission. This page only shows what would be sent and when.</p>
+      </div>
+    </div>
+    <div class="card stack">
+      <h2 class="sec">Same day, different ages</h2>
+      <p class="small muted">Reminders for ${DAYF[ui.remDay]} using your habits.</p>
+      <div class="tbl-wrap"><table style="min-width:440px"><thead><tr><th>Age</th><th>Sent</th><th>Style</th></tr></thead><tbody>${cmp}</tbody></table></div>
+    </div>
+  </div>`;
+}
+
+/* ----- Wins ----- */
+function areaPts(){
+  const m={};AREAS.forEach(a=>m[a.id]=0);
+  for(let i=0;i<7;i++){const d=daysAgo(i),k=dkey(d),wd=d.getDay();state.habits.forEach(h=>{if(h.days.includes(wd)&&isDone(k,h.id))m[h.area]+=ptsOf(h)})}
+  const since=Date.now()-7*864e5;state.wins.forEach(w=>{if(w.ts>=since)m[w.area]+=w.pts});
+  return m;
+}
+function vLog(){
+  const m=areaPts(),mx=Math.max(10,...Object.values(m)),wins=[...state.wins].sort((a,b)=>b.ts-a.ts).slice(0,30);
+  return `<div class="split" style="align-items:start">
+    <div class="stack">
+      <div class="card stack"><h2 class="sec">Log a win</h2>${winForm()}<p class="small muted">A win in an area that needs support earns 15 points. Anywhere else earns 10. Checked habits earn points by length and effort.</p></div>
+      <div class="card stack"><h2 class="sec">Recent wins</h2>
+        ${wins.length?wins.map(w=>`<div class="note"><span class="t">${new Date(w.ts).toLocaleDateString(undefined,{month:'short',day:'numeric'})}</span><div class="row between" style="flex-wrap:nowrap;align-items:flex-start"><div class="grow"><div style="overflow-wrap:anywhere">${esc(w.text)}</div><div class="row small muted" style="gap:6px"><span class="dot" style="--c:var(--c-${w.area})"></span>${esc(aShort(w.area))} · +${w.pts}${w.example?' · <span class="tag">Example</span>':''}</div></div><button class="btn ghost sm" type="button" data-act="delWin" data-id="${w.id}" aria-label="Remove win">Remove</button></div></div>`).join(''):`<div class="empty">No wins yet. Log the first one above.</div>`}
+      </div>
+    </div>
+    <div class="card stack"><div><div class="num">${weekPoints()}</div><div class="lbl">Points in the last 7 days</div></div>
+      <div class="stack" style="gap:10px">${AREAS.map(a=>`<div class="barrow" style="--c:var(--c-${a.id})"><span class="lab"><span class="dot"></span>${esc(aShort(a.id))}</span><div class="btrack"><i style="width:${m[a.id]/mx*100}%"></i></div><span class="mono small">${m[a.id]}</span></div>`).join('')}</div></div>
+  </div>`;
+}
+
+/* ----- Age and limits ----- */
+function vSafety(){
+  const b=bk(),ks=['kid','teen','young','adult'];
+  const V={kid:'Friendly and short',teen:'Direct, points to trusted adults',young:'Peer coach',adult:'Concise'};
+  const T={kid:'School, play, sleep, family',teen:'School, sport, friends, sleep, careers, healthy relationships',young:'All areas, including relationships and planning nights out',adult:'All areas'};
+  const O={kid:'Never',teen:'Once a day, warnings only',young:'Yes, except overlaps',adult:'Yes, except overlaps'};
+  const rows=[['Daily load limit',k=>LIMITS[k].cap],['Longest focus block',k=>durTxt(LIMITS[k].maxBlock)],['Exercise per day',k=>durTxt(LIMITS[k].exMin)],['Hard-effort time per day',k=>durTxt(LIMITS[k].hardMin)],['Hard blocks per day',k=>LIMITS[k].hardCount],
+    ['Protected sleep',k=>`${fmt(LIMITS[k].sleepStart)} to ${fmt(LIMITS[k].sleepEnd)}`],['Push past a warning',k=>O[k]],['Sprint areas at once',k=>LIMITS[k].sprints],['Reminder style',k=>LIMITS[k].rem.text],['Advisor voice',k=>V[k]],['Advisor topics',k=>T[k]]];
+  return `<div class="card stack"><div class="row between"><div><div class="lbl">Current</div><h2 class="sec">Ages ${Lim().label} · ${BRACKETS[b].title}</h2></div><button class="btn" type="button" data-act="changeAge">Change age range</button></div>
+    <p class="small muted">The columns show what the app does at each age. Yours is highlighted.</p>
+    <div class="tbl-wrap"><table><thead><tr><th>Setting</th>${ks.map(k=>`<th${k===b?' class="cur"':''}>${BRACKETS[k].label}</th>`).join('')}</tr></thead><tbody>${rows.map(r=>`<tr><td><b>${r[0]}</b></td>${ks.map(k=>`<td${k===b?' class="cur"':''}>${esc(String(r[1](k)))}</td>`).join('')}</tr>`).join('')}</tbody></table></div></div>
+  <div class="cols">
+    <div class="card stack"><h2 class="sec">What the advisor will not do</h2>
+      <p class="small">At every age, the advisor does not give sexual, drug, or alcohol advice and does not give medical advice. It sends the person to a parent, doctor, counselor, or another trusted adult.</p>
+      <p class="small">Under 18 it also does not coach dating or nights out. Relationship topics stay on respect, honesty, boundaries, family, and friends.</p>
+      <p class="small">If someone writes about hurting themselves, it shows the 988 Suicide and Crisis Lifeline and asks them to tell someone close.</p></div>
+    <div class="card stack"><h2 class="sec">What a real release needs</h2>
+      <p class="small">Age verification instead of a self-selected range, a parent account and consent for children under 13, and a server to send real push notifications. This prototype keeps everything in your browser.</p>
+      <div class="row"><button class="btn ghost sm" type="button" data-act="reset">${ui.resetArmed?'Click again to erase everything':'Reset the prototype'}</button></div></div>
+  </div>`;
+}
+
+/* ----- Modal ----- */
+function renderModal(){
+  const m=ui.modal,ov=$('overlay');
+  if(!m){ov.hidden=true;ov.innerHTML='';return}
+  const b=bk(),L=Lim(),info=overrideInfo(m.issues,b,dkey(new Date()));
+  const days=[...new Set(m.issues.map(i=>i.day))],day=days[0];
+  const touched=changedIds(m.base,m.draft),seenFix=new Set();m.fixes=[];
+  days.forEach(d=>suggest(m.draft,d,{issues:m.issues.filter(i=>i.day===d),load:loadOf(dayHabits(m.draft,d))},b,touched).forEach(f=>{if(!seenFix.has(f.key)&&m.fixes.length<6){seenFix.add(f.key);m.fixes.push(f)}}));
+  const blockedKinds=[...new Set(m.issues.filter(i=>!L.override.includes(i.sev)).map(i=>i.sev))].map(s=>({conflict:'overlaps',block:'blocked limits',warn:'warnings'}[s]));
+  const listJoin=a=>a.length<2?a.join(''):a.slice(0,-1).join(', ')+' and '+a[a.length-1];
+  const note=!info.ok?(L.override.length?`At ages ${L.label}, ${listJoin(blockedKinds)} can’t be skipped. Pick a fix or cancel.`:`Limits can’t be skipped at ages ${L.label}. Pick a fix or cancel.`):info.left<=0?'You already used today’s override. It resets tomorrow.':`You can save this anyway. It will be marked Pushed in your plan.${L.overrideDaily<99?` Ages ${L.label} get ${L.overrideDaily} override a day.`:''}`;
+  const prevTop=(!ov.hidden&&ov.querySelector('.modal'))?ov.querySelector('.modal').scrollTop:0;
+  ov.hidden=false;
+  ov.innerHTML=`<div class="modal" role="dialog" aria-modal="true" aria-labelledby="mTitle">
+    <div class="stack" style="gap:4px"><span class="lbl">Burnout override · ages ${L.label}</span><h2 id="mTitle">Too much on your plate</h2><p class="muted small">Adding ${esc(m.label)} breaks ${m.issues.length} limit${m.issues.length>1?'s':''}${days.length===1?` on ${DAYF[day]}`:''}.</p></div>
+    <div>${m.issues.map(i=>`<div class="issue"><span class="sev ${i.sev}">${sevName[i.sev]}</span><p class="small">${days.length>1?`<b>${DAYN[i.day]}</b> · `:''}${i.msg}</p></div>`).join('')}</div>
+    ${m.fixes.length?`<div class="stack"><span class="lbl">Fixes that keep your plan</span>${m.fixes.map((f,i)=>`<div class="fix"><div><b class="small">${f.label}</b><div class="small muted">${esc(f.detail)}</div></div><button class="btn sm" type="button" data-act="mFix" data-i="${i}">Apply</button></div>`).join('')}</div>`:''}
+    <p class="small">${esc(note)}</p>
+    <div class="row between"><button class="btn ghost" type="button" data-act="mCancel" id="mCancel">Cancel</button><button class="btn alert" type="button" data-act="mForce"${info.allowed?'':' disabled'}>Save anyway${info.allowed&&L.overrideDaily<99?` (${info.left} left today)`:''}</button></div>
+  </div>`;
+  const mo=ov.querySelector('.modal');if(mo)mo.scrollTop=prevTop;
+}
+
+/* ----- Shell ----- */
+function render(){
+  const tabs=$('tabs'),view=$('view'),top=$('modeTag').parentElement;
+  const a=document.activeElement,sig=a&&a.closest&&a.closest('#view,#tabs')?(a.id?'#'+a.id:a.dataset&&a.dataset.act?'[data-act="'+a.dataset.act+'"]'+['id','a','m','d','t','k','b'].map(x=>a.dataset[x]!==undefined?'[data-'+x+'="'+a.dataset[x]+'"]':'').join(''):null):null;
+  if(!state.profile||ui.gating){tabs.hidden=true;top.hidden=true;view.innerHTML=vGate()}
+  else{
+    tabs.hidden=false;top.hidden=false;
+    $('modeTag').textContent='Ages '+Lim().label;
+    tabs.innerHTML=TABS.map(t=>`<button class="tab" type="button" role="tab" aria-selected="${state.tab===t[0]}" data-act="tab" data-tab="${t[0]}">${t[1]}</button>`).join('');
+    const fn={today:vToday,plan:vPlan,areas:vAreas,advisor:vAdvisor,reminders:vReminders,log:vLog,safety:vSafety}[state.tab]||vToday;
+    view.innerHTML=fn();
+  }
+  if(sig){try{const el=document.querySelector(sig);if(el)el.focus({preventScroll:true})}catch(e){}}
+}
+</script>
+<script>
+'use strict';
+/* ---------- Guard flow: delta check, modal, commit ---------- */
+function changedIds(base,draft){
+  const m=new Map(base.map(h=>[h.id,JSON.stringify(h)]));
+  return new Set(draft.filter(h=>m.get(h.id)!==JSON.stringify(h)).map(h=>h.id));
+}
+function deltaIssues(base,draft,days,b){
+  const ch=changedIds(base,draft),out=[];
+  days.forEach(d=>{
+    const eb=evaluate(dayHabits(base,d),b),ed=evaluate(dayHabits(draft,d),b);
+    ed.issues.forEach(i=>{
+      let isNew;
+      if(i.ids)isNew=i.ids.some(x=>ch.has(x));
+      else{const p=eb.issues.find(z=>z.code===i.code);isNew=!p||(i.val||0)>(p.val||0)}
+      if(isNew)out.push({...i,day:d});
+    });
+  });
+  const ord={conflict:0,block:1,warn:2};
+  return out.sort((x,y)=>ord[x.sev]-ord[y.sev]);
+}
+function evalModal(m){
+  const b=bk(),ch=changedIds(m.base,m.draft),days=new Set();
+  m.draft.forEach(h=>{if(ch.has(h.id))h.days.forEach(d=>days.add(d))});
+  m.days=[...days];
+  const issues=deltaIssues(m.base,m.draft,m.days,b);
+  if(!issues.length){
+    state.habits=m.draft;save();ui.modal=null;ui.form=null;ui.formErr='';
+    renderModal();render();toast('<b>Saved.</b> Your plan is inside the limits.');return;
+  }
+  m.issues=issues;ui.modal=m;renderModal();
+  const c=$('mCancel');if(c)c.focus({preventScroll:true});
+}
+function tryAdd(newHabits,replaceId,label){
+  const base=state.habits,draft=base.filter(h=>h.id!==replaceId).concat(newHabits);
+  evalModal({base,draft,label});
+}
+
+/* ---------- Actions ---------- */
+function setTab(t){state.tab=t;save();render();window.scrollTo(0,0)}
+function applyPersona(p){AREAS.forEach(a=>{state.areas[a.id]={cur:p.cur[a.id],tgt:p.tgt[a.id],mode:p.mode[a.id]}})}
+function setMode(id,m){
+  if(m==='sprint'){
+    const n=AREAS.filter(a=>a.id!==id&&state.areas[a.id].mode==='sprint').length,L=Lim();
+    if(n>=L.sprints){toast(`<b>Sprint limit.</b> Ages ${L.label} can run ${L.sprints} sprint${L.sprints>1?'s':''} at a time. Move another area off Sprint first.`);return}
+  }
+  state.areas[id].mode=m;save();render();
+}
+function logWin(text,area){
+  text=(text||'').trim();
+  if(!text){toast('Write what you got done first.');return}
+  const pts=winPts(area);
+  state.wins.unshift({id:uid(),ts:Date.now(),day:dkey(new Date()),area,text,pts});
+  save();render();toast(`<b>+${pts}</b> in ${esc(aName(area))}. Logged.`);
+}
+function submitHabit(){
+  const f=ui.form;
+  const title=f.title.trim(),dur=Math.round(+f.dur),start=parseHM(f.start||'00:00');
+  if(!title){ui.formErr='Give the habit a name.';render();return}
+  if(!(dur>=5&&dur<=720)){ui.formErr='Length must be between 5 and 720 minutes.';render();return}
+  if(!f.days.length){ui.formErr='Pick at least one day.';render();return}
+  if(start+dur>1440){ui.formErr='A habit cannot run past midnight. Shorten it or split it across two days.';render();return}
+  ui.formErr='';
+  const h={id:f.id||uid(),title,area:f.area,start,dur,int:+f.int,days:[...f.days]};
+  tryAdd([h],f.id,`“${esc(title)}”`);
+}
+function scenario(){
+  const d=ui.day;
+  tryAdd([{id:uid(),title:'Long workout',area:'fitness',start:420,dur:180,int:3,days:[d]},{id:uid(),title:'Midterm cram',area:'academics',start:630,dur:480,int:3,days:[d]}],null,'a 3 hour workout and an 8 hour study block');
+}
+function gateStart(){
+  const g=ui.gate;
+  if(!g.b){g.err='Choose an age range to continue.';render();return}
+  if(g.b==='kid'&&!g.parent){g.err='A parent or guardian needs to help with setup for ages 10–13.';render();return}
+  const first=!state.profile,changed=!first&&state.profile.bracket!==g.b;
+  state.profile={bracket:g.b,ts:Date.now()};
+  if(first||changed){
+    state.habits=starterHabits(g.b);state.overrides={};
+    if(first)applyPersona(PERSONAS[0]);
+    if(first||state.example)seedDemo();else state.demoDone={};
+    ui.adv=[];ui.form=null;ui.formErr='';
+  }
+  state.tab='today';ui.gating=false;ui.gate=null;save();render();window.scrollTo(0,0);
+  toast(first?`<b>Welcome.</b> Limits and advice are set for ages ${Lim().label}.`:`<b>Switched to ages ${Lim().label}.</b> Habits, limits, and advice now match.`);
+}
+const ACTS={
+  tab:el=>setTab(el.dataset.tab),
+  openPlan:el=>{ui.day=+el.dataset.d;setTab('plan')},
+  toggle:el=>{const k=dkey(new Date()),id=el.dataset.id;state.done[k]=state.done[k]||{};state.done[k][id]=!state.done[k][id];save();render()},
+  selDay:el=>{ui.day=+el.dataset.d;if(!ui.form||!ui.form.id)ui.form=newForm(ui.day);render()},
+  formDay:el=>{const d=+el.dataset.d,a=ui.form.days;ui.form.days=a.includes(d)?a.filter(x=>x!==d):a.concat([d]);render()},
+  edit:el=>{const h=state.habits.find(x=>x.id===el.dataset.id);if(!h)return;ui.form={id:h.id,title:h.title,area:h.area,start:hhmm(h.start),dur:h.dur,int:h.int,days:[...h.days]};ui.formErr='';render();const t=$('f-title');if(t){t.scrollIntoView({block:'center'});t.focus()}},
+  formCancel:()=>{ui.form=newForm(ui.day);ui.formErr='';render()},
+  del:el=>{const h=state.habits.find(x=>x.id===el.dataset.id);state.habits=state.habits.filter(x=>x.id!==el.dataset.id);save();render();toast(`Removed <b>${esc(h?h.title:'habit')}</b>.`)},
+  scenario:()=>scenario(),
+  mFix:el=>{const m=ui.modal,f=m&&m.fixes[+el.dataset.i];if(!f)return;m.draft=f.apply(m.draft);evalModal(m)},
+  mCancel:()=>{ui.modal=null;renderModal()},
+  mForce:()=>{
+    const m=ui.modal;if(!m)return;
+    const info=overrideInfo(m.issues,bk(),dkey(new Date()));if(!info.allowed)return;
+    const ch=changedIds(m.base,m.draft);
+    state.habits=m.draft.map(h=>ch.has(h.id)?{...h,pushed:true}:h);
+    const k=dkey(new Date());state.overrides[k]=(state.overrides[k]||0)+1;
+    save();ui.modal=null;ui.form=null;renderModal();render();toast('<b>Saved past the limit.</b> It is marked Pushed in your plan.');
+  },
+  mode:el=>setMode(el.dataset.a,el.dataset.m),
+  persona:el=>{const p=PERSONAS.find(x=>x.id===el.dataset.p);applyPersona(p);
+    let sp=0;AREAS.forEach(a=>{if(state.areas[a.id].mode==='sprint'){sp++;if(sp>Lim().sprints)state.areas[a.id].mode='build'}});
+    save();render();toast(`Loaded <b>${esc(p.label)}</b>.`)},
+  advTopic:el=>{
+    const t=el.dataset.t,label={focus:'What should I focus on today?',gap:'What is my biggest gap?',balance:'Keep my strengths while I build',over:'I feel overwhelmed',love:'Help with '+aName('love'),social:'Help with my social life'}[t];
+    const fn={focus:aiFocus,gap:()=>aiGap(),balance:aiBalance,over:aiOverwhelmed,love:()=>aiGap('love'),social:()=>aiGap('social')}[t];
+    ui.adv.push({who:'me',html:label},{who:'ai',html:esc(fn())});render();
+  },
+  remToggle:el=>{state.rem[el.dataset.k]=!state.rem[el.dataset.k];save();render()},
+  remArea:el=>{state.rem.areas[el.dataset.a]=!state.rem.areas[el.dataset.a];save();render()},
+  remDay:el=>{ui.remDay=+el.dataset.d;render()},
+  testNotif:()=>{
+    if(!state.rem.on){toast('Reminders are off. Turn them on to get a test.');return}
+    const n=nextHabit(),b=bk(),h=n||{title:'your next habit',area:'academics'};
+    toast(`<b>${esc('Time for '+h.title)}</b><br>${esc(bodyFor(h,b,'start')||bodyFor(h,b,'lead'))}`);
+  },
+  quickWin:el=>{const s=$('winArea');logWin(el.dataset.t,s?s.value:'mind')},
+  delWin:el=>{state.wins=state.wins.filter(w=>w.id!==el.dataset.id);save();render()},
+  gateAge:el=>{ui.gate.b=el.dataset.b;ui.gate.err='';if(el.dataset.b!=='kid')ui.gate.parent=false;render()},
+  gateStart:()=>gateStart(),
+  gateCancel:()=>{ui.gating=false;ui.gate=null;render()},
+  changeAge:()=>{ui.gating=true;ui.gate={b:state.profile.bracket,parent:state.profile.bracket==='kid',err:''};render();window.scrollTo(0,0)},
+  clearExamples:()=>{state.wins=state.wins.filter(w=>!w.example);state.demoDone={};state.example=false;save();render();toast('Examples cleared. Start logging your own.')},
+  reset:()=>{
+    if(!ui.resetArmed){ui.resetArmed=true;render();return}
+    ui.resetArmed=false;state=freshState();save();ui.adv=[];ui.form=null;ui.gating=false;ui.gate=null;render();window.scrollTo(0,0);
+  }
+};
+document.addEventListener('click',e=>{
+  const el=e.target.closest('[data-act]');if(!el||el.disabled)return;
+  const fn=ACTS[el.dataset.act];if(fn)fn(el);
+});
+document.addEventListener('input',e=>{
+  const t=e.target;
+  if(t.id&&t.id.indexOf('f-')===0&&ui.form){
+    const k=t.id.slice(2);if(k==='title'||k==='area'||k==='start'||k==='dur'||k==='int')ui.form[k]=t.value;return;
+  }
+  if(t.id==='clock'){ui.clock=+t.value;$('clockLbl').textContent=fmt(ui.clock);$('remList').innerHTML=remList();return}
+  if(t.dataset&&t.dataset.area){
+    state.areas[t.dataset.area][t.dataset.k]=+t.value;
+    const lab=$(t.dataset.k+'v-'+t.dataset.area);if(lab)lab.textContent=t.value+' / 5';save();
+  }
+});
+document.addEventListener('change',e=>{
+  const t=e.target;
+  if(t.dataset&&t.dataset.area)render();
+  if(t.id==='gateParent'){ui.gate.parent=t.checked;ui.gate.err=''}
+  if(t.id==='f-area'||t.id==='f-int'||t.id==='f-start'){/* values already captured on input */}
+});
+document.addEventListener('submit',e=>{
+  e.preventDefault();
+  const id=e.target.id;
+  if(id==='habitForm')submitHabit();
+  else if(id==='winForm'){const s=$('winArea'),x=$('winText');logWin(x.value,s.value)}
+  else if(id==='advForm'){
+    const x=$('advText'),q=x.value.trim();if(!q)return;
+    ui.adv.push({who:'me',html:q});const r=aiAsk(q);ui.adv.push({who:'ai',html:r.html,kind:r.kind});render();
+    const n=$('advText');if(n)n.focus();
+  }
+});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&ui.modal){ui.modal=null;renderModal()}});
+
+/* ---------- Boot ---------- */
+state=loadState()||freshState();
+if(state.profile&&!LIMITS[state.profile.bracket])state=freshState();
+if(!TABS.some(t=>t[0]===state.tab))state.tab='today';
+render();
+</script>
+
+</body>
+</html>
